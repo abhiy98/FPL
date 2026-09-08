@@ -76,7 +76,7 @@ text = text.replace(/\s*var isFav = state\.favs\.has\(p\.id\), isWatch =/g, " va
 text = text.replace(/\s*<button class="pw-btn" id="pwModalFav">'\+\(state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite'\)\+'<\/button>/g, "");
 text = text.replace(/\s*document\.getElementById\('pwModalFav'\)\.addEventListener\('click',function\(\)\{toggleFavourite\(p\.id\);this\.textContent=state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite';\}\);/g, "");
 
-// Add the FPL-style price-change countdown directly to the main header.
+// Add the price-change countdown directly to the main header.
 replaceIfPresent(
   "price change timer markup",
   '  </div>\n\n  <div class="search-row">',
@@ -92,11 +92,9 @@ replaceIfPresent(
 replaceIfPresent(
   "price change timer logic",
   '  var risersOnly = document.getElementById("risersOnly");',
-  '  var risersOnly = document.getElementById("risersOnly");\n\n  function updatePriceTimer(){\n    var el=document.getElementById("pwPriceTimer"),ev=currentEvent(state.events);\n    if(!el){return;}\n    if(!ev||!ev.deadline_time){el.textContent="--:--:--";return;}\n    var diff=Math.max(0,new Date(ev.deadline_time).getTime()-Date.now()),s=Math.floor(diff/1000);\n    var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;\n    el.textContent=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");\n  }\n  setInterval(updatePriceTimer,1000);\n  updatePriceTimer();'
+  '  var risersOnly = document.getElementById("risersOnly");\n\n  function updatePriceTimer(){\n    var el=document.getElementById("pwPriceTimer");\n    if(!el){return;}\n    var now=new Date();\n    var parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(now),o={};\n    parts.forEach(function(x){if(x.type!=="literal")o[x.type]=x.value;});\n    var y=Number(o.year),m=Number(o.month)-1,d=Number(o.day),h=Number(o.hour),mi=Number(o.minute),se=Number(o.second);\n    var utcNow=Date.UTC(y,m,d,h,mi,se);\n    var offset=utcNow-now.getTime();\n    var nextMidnight=Date.UTC(y,m,d+1,0,0,0)-offset;\n    var diff=Math.max(0,nextMidnight-now.getTime()),s=Math.floor(diff/1000);\n    var hh=Math.floor(s/3600);s%=3600;var mm=Math.floor(s/60);s%=60;\n    el.textContent=String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(s).padStart(2,"0");\n  }\n  setInterval(updatePriceTimer,1000);\n  updatePriceTimer();'
 );
 
-// The displayed Team value should be the sum of the current prices of the 15
-// players actually loaded into the team, rather than entry.last_deadline_value.
 const oldTeamNote = "    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device.';";
 const newTeamNote = "    var teamValue=state.team?state.players.filter(function(p){return state.team.picks.has(p.id);}).reduce(function(sum,p){return sum+p.now;},0):0; var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(teamValue/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Watchlist and your Team ID are saved locally on this device.';";
 replaceIfPresent("calculated team value", oldTeamNote, newTeamNote);
