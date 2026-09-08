@@ -1,0 +1,30 @@
+name: Apply Price Watch enhancements
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Apply patch
+        run: python3 pw-enhance.py
+
+      - name: Commit changes and remove patch files
+        run: |
+          rm -f pw-enhance.py .github/workflows/pw-enhance.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html pw-enhance.py .github/workflows/pw-enhance.yml
+          git commit -m "feat: upgrade Price Watch UX [price-watch-enhance]"
+          git push origin HEAD:main
