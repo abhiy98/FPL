@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/patch-index.js"
   functions = "netlify/functions"
   publish = "."
 
