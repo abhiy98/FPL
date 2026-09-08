@@ -112,28 +112,16 @@ async function serveAsset(request, env) {
   const proxyTo = '    { build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },';
   html = html.replace(proxyFrom, proxyTo);
 
-  const teamObserverFrom = `  function apply(){
-    if(!teamIds)return;
-    rows().forEach(function(row){row.style.display=teamIds.has(Number(row.getAttribute('data-player-id'))) ? '' : 'none';});
-    var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
-    var count=document.getElementById('countLabel');if(count)count.textContent=teamIds.size+' team players';
-  }`;
-  const teamObserverTo = `  function apply(){
-    var chip=document.getElementById('myTeamOnly');
-    if(!teamIds || !chip || !chip.classList.contains('active')){
-      rows().forEach(function(row){row.style.display='';});
-      return;
-    }
-    rows().forEach(function(row){row.style.display=teamIds.has(Number(row.getAttribute('data-player-id'))) ? '' : 'none';});
-    var count=document.getElementById('countLabel');if(count)count.textContent=teamIds.size+' team players';
-  }`;
-  html = html.replace(teamObserverFrom, teamObserverTo);
+  // Remove the old injected team-filter observer. It maintained a second
+  // hidden list of team IDs and could override the real application state.
+  html = html.replace(/<!-- pricewatch:team-ui-fix -->[\s\S]*?<\/script>/g, "");
 
   const marker = '  var risersOnly = document.getElementById(\'risersOnly\');';
   const injected = marker + `
 
   var myTeamOnlyChip = document.getElementById('myTeamOnly');
-  if (myTeamOnlyChip) {
+  if (myTeamOnlyChip && !myTeamOnlyChip.__pwBound) {
+    myTeamOnlyChip.__pwBound = true;
     myTeamOnlyChip.addEventListener('click', function(e){
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -141,8 +129,26 @@ async function serveAsset(request, env) {
       myTeamOnlyChip.classList.toggle('active', state.myTeamOnly);
       render();
     }, true);
+  }
+
+  var clearTeamButton = document.getElementById('pwClearTeam');
+  if (clearTeamButton && !clearTeamButton.__pwBound) {
+    clearTeamButton.__pwBound = true;
+    clearTeamButton.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      state.team = null;
+      state.myTeamOnly = false;
+      clearTeamButton.style.display = 'none';
+      if (myTeamOnlyChip) myTeamOnlyChip.classList.remove('active');
+      try { localStorage.removeItem(STORE_KEY_TEAM); } catch (_) {}
+      var input = document.getElementById('pwTeamId');
+      if (input) input.value = '';
+      render();
+      showToast('Team cleared');
+    }, true);
   }`;
-  if (html.includes(marker) && !html.includes("var myTeamOnlyChip")) {
+  if (html.includes(marker) && !html.includes("myTeamOnlyChip.__pwBound")) {
     html = html.replace(marker, injected);
   }
 
