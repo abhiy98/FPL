@@ -1,6 +1,9 @@
 (function(){
   "use strict";
 
+  var pointsById = {};
+  var pointsLoaded = false;
+
   function formatCountdownToPriceChange(){
     var now = new Date();
     var parts = new Intl.DateTimeFormat("en-GB", {
@@ -49,16 +52,15 @@
         value.id = "pwPriceTimer";
         value.textContent = formatCountdownToPriceChange();
       }
-      if (timerBar) timerBar.remove();
+      timerBar.remove();
     } else if (value) {
       value.textContent = formatCountdownToPriceChange();
     }
   }
 
-  function addTotalPointsColumn(){
+  function addTotalPointsHeader(){
     var head = document.querySelector("thead tr");
     if (!head || head.querySelector('th[data-key="points"]')) return;
-
     var eventHeader = head.querySelector('th[data-key="event"]');
     if (!eventHeader) return;
 
@@ -67,63 +69,55 @@
     th.setAttribute("data-key", "points");
     th.innerHTML = '<button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button>';
     eventHeader.after(th);
-
-    var tbody = document.getElementById("tbody");
-    if (tbody) {
-      tbody.querySelectorAll("tr.skeleton-row").forEach(function(row){
-        var cell = document.createElement("td");
-        var skeleton = document.createElement("div");
-        skeleton.className = "skeleton";
-        skeleton.style.width = "36px";
-        skeleton.style.marginLeft = "auto";
-        cell.appendChild(skeleton);
-        row.insertBefore(cell, row.lastElementChild);
-      });
-    }
-
-    var originalRender = window.__priceWatchRender;
-    if (typeof originalRender === "function") originalRender();
   }
 
-  function patchRender(){
-    var scriptText = Array.from(document.scripts).map(function(s){ return s.textContent || ""; }).join("\n");
-    if (scriptText.indexOf('p.points') === -1) return;
-
-    var originalBody = document.body.innerHTML;
-    if (originalBody.indexOf('data-key="points"') === -1) {
-      addTotalPointsColumn();
-    }
-
-    var rows = document.querySelectorAll("#tbody tr[data-player-id]");
-    rows.forEach(function(row){
+  function addPointsCells(){
+    if (!pointsLoaded) return;
+    var tbody = document.getElementById("tbody");
+    if (!tbody) return;
+    tbody.querySelectorAll("tr[data-player-id]").forEach(function(row){
       if (row.querySelector(".total-points-cell")) return;
-      var playerId = Number(row.getAttribute("data-player-id"));
-      var eventCell = row.querySelector("td:nth-child(5)");
+      var id = Number(row.getAttribute("data-player-id"));
+      if (!(id in pointsById)) return;
+      var eventCell = row.querySelector('td:nth-child(5)');
       if (!eventCell) return;
-      var players = window.__priceWatchPlayers || [];
-      var player = players.find(function(x){ return Number(x.id) === playerId; });
-      if (!player) return;
       var cell = document.createElement("td");
       cell.className = "num total-points-cell";
-      cell.textContent = player.points || 0;
+      cell.textContent = pointsById[id];
       eventCell.after(cell);
     });
   }
 
-  function update(){
-    movePriceTimer();
-    patchRender();
+  function loadPoints(){
+    fetch("/fpl?path=bootstrap-static/", {cache:"no-store"}).then(function(res){
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }).then(function(data){
+      (data.elements || []).forEach(function(player){
+        pointsById[player.id] = player.total_points || 0;
+      });
+      pointsLoaded = true;
+      addPointsCells();
+    }).catch(function(){
+      // The main app can still load and display all other columns if this request fails.
+    });
   }
 
   function boot(){
-    update();
+    addTotalPointsHeader();
+    movePriceTimer();
+    loadPoints();
+
     setInterval(function(){
       movePriceTimer();
-      patchRender();
+      addPointsCells();
     }, 1000);
-    var observer = new MutationObserver(function(){ patchRender(); });
+
     var tbody = document.getElementById("tbody");
-    if (tbody) observer.observe(tbody, {childList:true,subtree:true});
+    if (tbody) {
+      var observer = new MutationObserver(function(){ addPointsCells(); });
+      observer.observe(tbody, {childList:true, subtree:true});
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
