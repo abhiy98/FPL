@@ -98,19 +98,16 @@ async function serveAsset(request, env) {
   function normalizePriceStatusColumn(){
     var headerRow=document.querySelector('thead tr');
     var body=document.getElementById('tbody');
-    if(!headerRow || !body || !window.state) return;
-    var headers=Array.prototype.slice.call(headerRow.children);
-    var statusTh=headers.find(function(th){return /^(status|price change)$/i.test(th.textContent.trim());});
+    if(!headerRow || !body) return;
+    var statusTh=Array.prototype.slice.call(headerRow.children).find(function(th){return /^(status|price change)$/i.test(th.textContent.trim());});
     if(!statusTh){
       statusTh=document.createElement('th');
       statusTh.className='num';
       statusTh.setAttribute('data-key','priceStatusRank');
       statusTh.innerHTML='<button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button>';
-      headerRow.insertBefore(statusTh,headerRow.children[1]||null);
-    } else {
-      statusTh.setAttribute('data-key','priceStatusRank');
-      if(headerRow.children[1]!==statusTh) headerRow.insertBefore(statusTh,headerRow.children[1]||null);
     }
+    statusTh.setAttribute('data-key','priceStatusRank');
+    if(headerRow.children[1]!==statusTh) headerRow.insertBefore(statusTh,headerRow.children[1]||null);
     var index=Array.prototype.indexOf.call(headerRow.children,statusTh);
     Array.prototype.forEach.call(body.querySelectorAll('tr[data-player-id]'),function(row){
       var id=Number(row.getAttribute('data-player-id'));
