@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Price Watch — FPL price tracker</title>
+<meta name="theme-color" content="#1c0025">
+<meta name="description" content="Live Fantasy Premier League price change tracker">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Price Watch">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --ink:#1c0025;
+    --ink-2:#37003c;
+    --panel:#26002b;
+    --panel-2:#2f0334;
+    --line:rgba(255,255,255,0.09);
+    --line-strong:rgba(255,255,255,0.16);
+    --text:#f4eef6;
+    --text-dim:#c9b8d1;
+    --text-faint:#8a7690;
+    --rise:#00ff85;
+    --rise-text:#00c765;
+    --fall:#ff3b5c;
+    --fall-text:#ff3b5c;
+    --flat:#7d6a84;
+    --accent:#04f5ff;
+    --gold:#e8c46b;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:var(--ink);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior-y:none;
+  }
+  body{
+    display:flex;flex-direction:column;
+    height:100vh;
+    height:100dvh;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    flex:none;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px;
+    background:linear-gradient(180deg,var(--ink-2),var(--ink) 130%);
+    border-bottom:1px solid var(--line);
+  }
+  .brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .brand{display:flex;align-items:center;gap:9px;}
+  .brand-mark{
+    width:30px;height:30px;border-radius:8px;
+    background:linear-gradient(135deg,var(--rise),var(--accent));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:14px;color:var(--ink);
+    flex:none;
+  }
+  .brand h1{font-size:16px;font-weight:600;margin:0;letter-spacing:0.2px;}
+  .brand span.sub{display:block;font-size:11px;color:var(--text-faint);font-weight:400;margin-top:1px;}
+  .status-pill{
+    display:flex;align-items:center;gap:6px;
+    font-size:11px;color:var(--text-dim);
+    padding:6px 10px;border-radius:999px;
+    background:var(--panel);border:1px solid var(--line);
+    flex:none;
+    white-space:nowrap;
+  }
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--flat);flex:none;transition:background .3s;}
+  .status-dot.live{background:var(--rise);box-shadow:0 0 0 3px rgba(0,255,133,0.18);}
+  .status-dot.err{background:var(--fall);}
+  .status-pill button{
+    background:none;border:none;color:var(--accent);font-size:11px;font-weight:600;
+    padding:0 0 0 6px;margin-left:2px;border-left:1px solid var(--line-strong);
+    padding-left:8px;cursor:pointer;
+  }
+  .status-pill button:active{opacity:0.6;}
+  .spin{animation:spin 0.8s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .search-row{display:flex;gap:8px;}
+  .search-wrap{position:relative;flex:1;}
+  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:0.5;pointer-events:none;}
+  #search{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:10px 12px 10px 34px;
+    color:var(--text);
+    font-size:15px;
+    outline:none;
+  }
+  #search::placeholder{color:var(--text-faint);}
+  #search:focus{border-color:var(--accent);}
+  .clear-btn{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    background:none;border:none;color:var(--text-faint);font-size:18px;
+    display:none;cursor:pointer;line-height:1;padding:4px;
+  }
+  .filter-chip{
+    flex:none;
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:0 12px;font-size:13px;color:var(--text-dim);
+    cursor:pointer;user-select:none;
+  }
+  .filter-chip.active{border-color:var(--accent);color:var(--accent);}
+
+  .subbar{
+    display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;
+  }
+  .subbar::-webkit-scrollbar{display:none;}
+  .pos-chip{
+    flex:none;font-size:12px;font-weight:500;color:var(--text-dim);
+    background:var(--panel);border:1px solid var(--line);
+    padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  }
+  .pos-chip.active{background:rgba(0,255,133,0.14);border-color:var(--rise);color:var(--rise);}
+
+  /* ---------- table ---------- */
+  .table-wrap{
+    flex:1;min-height:0;position:relative;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;}
+  thead th{
+    position:sticky;top:0;z-index:3;
+    background:var(--ink-2);
+    border-bottom:1px solid var(--line-strong);
+    font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-faint);
+    font-weight:600;
+    padding:0;
+    white-space:nowrap;
+  }
+  th button.sort-btn{
+    all:unset;
+    display:flex;align-items:center;gap:4px;
+    padding:11px 14px;cursor:pointer;
+    width:100%;box-sizing:border-box;
+  }
+  th button.sort-btn:active{background:rgba(255,255,255,0.05);}
+  .sort-arrows{display:flex;flex-direction:column;line-height:0;gap:1px;opacity:0.35;}
+  .sort-arrows svg{width:8px;height:8px;}
+  th.sorted .sort-arrows{opacity:1;}
+  th.sorted .sort-arrows svg{fill:var(--accent);}
+
+  .col-player{
+    position:sticky;left:0;z-index:2;
+    background:var(--ink-2);
+    min-width:168px;max-width:168px;
+    border-right:1px solid var(--line-strong);
+  }
+  thead .col-player{z-index:4;}
+  tbody .col-player{background:var(--panel);}
+  tbody tr:nth-child(even) .col-player{background:var(--panel-2);}
+
+  tbody tr{background:var(--panel);}
+  tbody tr:nth-child(even){background:var(--panel-2);}
+  tbody td{
+    padding:10px 14px;
+    font-size:13.5px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  .player-cell{display:flex;flex-direction:column;gap:1px;padding:9px 12px;}
+  .player-name{font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;}
+  .player-meta{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);}
+  .pos-badge{
+    font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px;
+    letter-spacing:0.3px;
+  }
+  .pos-GKP{background:rgba(232,196,107,0.18);color:var(--gold);}
+  .pos-DEF{background:rgba(4,245,255,0.15);color:var(--accent);}
+  .pos-MID{background:rgba(0,255,133,0.15);color:var(--rise);}
+  .pos-FWD{background:rgba(255,59,92,0.15);color:var(--fall);}
+
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+  td.price{font-weight:600;}
+  .delta{font-weight:700;}
+  .delta.up{color:var(--rise-text);}
+  .delta.down{color:var(--fall-text);}
+  .delta.flat{color:var(--text-faint);font-weight:500;}
+  .arrow{font-size:10px;margin-right:2px;}
+  .own-bar-wrap{display:flex;align-items:center;justify-content:flex-end;gap:7px;}
+  .own-bar{width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden;flex:none;}
+  .own-bar i{display:block;height:100%;background:var(--accent);border-radius:2px;}
+
+  .empty-state{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:60px 20px;color:var(--text-faint);text-align:center;gap:8px;
+  }
+  .empty-state svg{opacity:0.3;margin-bottom:4px;}
+  .empty-state b{color:var(--text-dim);font-size:14px;font-weight:600;}
+  .empty-state span{font-size:12.5px;}
+
+  .skeleton-row td{padding:13px 14px;}
+  .skeleton{
+    height:12px;border-radius:4px;
+    background:linear-gradient(90deg,rgba(255,255,255,0.05),rgba(255,255,255,0.11),rgba(255,255,255,0.05));
+    background-size:200% 100%;
+    animation:shimmer 1.3s infinite;
+  }
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+  footer{
+    flex:none;
+    padding:9px 16px calc(env(safe-area-inset-bottom,0px) + 9px);
+    border-top:1px solid var(--line);
+    background:var(--ink-2);
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:11px;color:var(--text-faint);
+  }
+  footer .legend{display:flex;gap:12px;}
+  footer .legend span{display:flex;align-items:center;gap:4px;}
+  footer .dot{width:6px;height:6px;border-radius:50%;}
+
+  .toast{
+    position:fixed;left:50%;bottom:70px;transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2);border:1px solid var(--line-strong);
+    padding:10px 16px;border-radius:999px;font-size:12.5px;color:var(--text);
+    opacity:0;transition:all .25s ease;pointer-events:none;z-index:50;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  ::-webkit-scrollbar{height:9px;width:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.14);border-radius:5px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand">
+      <div class="brand-mark">£</div>
+      <h1>Price Watch<span class="sub">FPL price change tracker</span></h1>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Connecting…</span>
+      <button id="refreshBtn" aria-label="Refresh now">⟳</button>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9b8d1" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search" type="text" placeholder="Search player or club" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="clear-btn" id="clearSearch" aria-label="Clear search">×</button>
+    </div>
+    <div class="filter-chip" id="risersOnly" role="button" tabindex="0">Movers only</div>
+  </div>
+
+  <div class="subbar" id="posBar">
+    <div class="pos-chip active" data-pos="ALL">All</div>
+    <div class="pos-chip" data-pos="GKP">Keepers</div>
+    <div class="pos-chip" data-pos="DEF">Defenders</div>
+    <div class="pos-chip" data-pos="MID">Midfielders</div>
+    <div class="pos-chip" data-pos="FWD">Forwards</div>
+  </div>
+</header>
+
+<div class="table-wrap" id="tableWrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="col-player" data-key="name">
+          <button class="sort-btn">
+            Player
+            <span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span>
+          </button>
+        </th>
+        <th data-key="gw1"><button class="sort-btn">GW1 price<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="now"><button class="sort-btn">Current<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="total"><button class="sort-btn">Total Δ<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="event"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="own"><button class="sort-btn">Owned<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:110px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
+      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:90px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
+      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:130px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
+    </tbody>
+  </table>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8a7690" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <b>No players found</b>
+    <span>Try a different name or clear the filters.</span>
+  </div>
+</div>
+
+<footer>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--rise)"></i>Risen</span>
+    <span><i class="dot" style="background:var(--fall)"></i>Fallen</span>
+  </div>
+  <span id="countLabel">— players</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORE_KEY_SNAPSHOT = "pricewatch:lastGood";
+  var POLL_MS = 3 * 60 * 1000;
+  var BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
+  var PROXIES = [
+    { build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } },
+    { build: function(u){ return u; }, parse: function(res){ return res.json(); } },
+    { build: function(u){ return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); }, parse: function(res){ return res.json(); } },
+    { build: function(u){ return "https://corsproxy.io/?url=" + encodeURIComponent(u); }, parse: function(res){ return res.json(); } },
+    { build: function(u){ return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u); }, parse: function(res){ return res.json(); } },
+    { build: function(u){ return "https://api.allorigins.win/get?url=" + encodeURIComponent(u); }, parse: function(res){ return res.json().then(function(wrap){ return JSON.parse(wrap.contents); }); } }
+  ];
+
+  function fetchWithTimeout(url, ms){
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, ms);
+    return fetch(url, { cache: "no-store", signal: ctrl.signal }).finally(function(){ clearTimeout(timer); });
+  }
+
+  var state = {
+    players: [],
+    sortKey: "total",
+    sortDir: "desc",
+    search: "",
+    pos: "ALL",
+    moversOnly: false,
+    lastUpdated: null,
+    polling: false
+  };
+
+  var tbody = document.getElementById("tbody");
+  var emptyState = document.getElementById("emptyState");
+  var statusDot = document.getElementById("statusDot");
+  var statusText = document.getElementById("statusText");
+  var refreshBtn = document.getElementById("refreshBtn");
+  var searchInput = document.getElementById("search");
+  var clearSearch = document.getElementById("clearSearch");
+  var countLabel = document.getElementById("countLabel");
+  var toastEl = document.getElementById("toast");
+  var posBar = document.getElementById("posBar");
+  var risersOnly = document.getElementById("risersOnly");
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ toastEl.classList.remove("show"); }, 2600);
+  }
+
+  function fmtPrice(tenths){
+    return "£" + (tenths / 10).toFixed(1);
+  }
+
+  function fmtDelta(tenths){
+    var v = tenths / 10;
+    if (v === 0) return { text: "0.0", cls: "flat", arrow: "" };
+    var sign = v > 0 ? "+" : "";
+    return {
+      text: sign + v.toFixed(1),
+      cls: v > 0 ? "up" : "down",
+      arrow: v > 0 ? "▲" : "▼"
+    };
+  }
+
+  function timeAgo(date){
+    if (!date) return "never";
+    var s = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (s < 10) return "just now";
+    if (s < 60) return s + "s ago";
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + "m ago";
+    var h = Math.floor(m / 60);
+    return h + "h ago";
+  }
+
+  async function fetchBootstrap(onAttempt){
+    var lastErr = null;
+    for (var i = 0; i < PROXIES.length; i++){
+      var proxy = PROXIES[i];
+      try{
+        if (onAttempt) onAttempt(i + 1, PROXIES.length);
+        var url = proxy.build(BOOTSTRAP_URL);
+        var res = await fetchWithTimeout(url, 8000);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var data = await proxy.parse(res);
+        if (!data || !data.elements || !data.elements.length) throw new Error("Unexpected payload");
+        return data;
+      }catch(e){
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("All sources failed");
+  }
+
+  function mapPlayers(data){
+    var teams = {};
+    (data.teams || []).forEach(function(t){ teams[t.id] = t.short_name; });
+    var posMap = { 1: "GKP", 2: "DEF", 3: "MID", 4: "FWD" };
+    return (data.elements || []).map(function(el){
+      var now = el.now_cost;
+      var startChange = el.cost_change_start || 0;
+      var gw1 = now - startChange;
+      return {
+        id: el.id,
+        name: el.web_name,
+        team: teams[el.team] || "",
+        pos: posMap[el.element_type] || "",
+        gw1: gw1,
+        now: now,
+        total: startChange,
+        event: el.cost_change_event || 0,
+        own: parseFloat(el.selected_by_percent) || 0,
+        status: el.status
+      };
+    });
+  }
+
+  function applyFilters(list){
+    var q = state.search.trim().toLowerCase();
+    return list.filter(function(p){
+      if (state.pos !== "ALL" && p.pos !== state.pos) return false;
+      if (state.moversOnly && p.total === 0) return false;
+      if (q && p.name.toLowerCase().indexOf(q) === -1 && p.team.toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function sortList(list){
+    var key = state.sortKey, dir = state.sortDir === "asc" ? 1 : -1;
+    return list.slice().sort(function(a, b){
+      var av, bv;
+      if (key === "name"){ av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+      else { av = a[key]; bv = b[key]; }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  function renderHeaderState(){
+    document.querySelectorAll("th[data-key]").forEach(function(th){
+      th.classList.toggle("sorted", th.getAttribute("data-key") === state.sortKey);
+      var svgs = th.querySelectorAll(".sort-arrows svg");
+      if (svgs.length === 2){
+        svgs[0].style.opacity = (state.sortKey === th.getAttribute("data-key") && state.sortDir === "asc") ? "1" : "0.35";
+        svgs[1].style.opacity = (state.sortKey === th.getAttribute("data-key") && state.sortDir === "desc") ? "1" : "0.35";
+      }
+    });
+  }
+
+  function render(){
+    var filtered = applyFilters(state.players);
+    var sorted = sortList(filtered);
+    renderHeaderState();
+
+    if (!sorted.length){
+      tbody.innerHTML = "";
+      emptyState.style.display = "flex";
+      if (!state.players.length){
+        emptyState.innerHTML =
+          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8a7690" stroke-width="1.6"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>' +
+          '<b>Couldn\'t load prices</b>' +
+          '<span>' + escapeHtml(state.loadErrorMsg || "Check your connection and try again.") + '</span>' +
+          '<button id="retryBtn" style="margin-top:10px;background:var(--panel-2);border:1px solid var(--line-strong);color:var(--accent);padding:8px 16px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;">Retry</button>';
+        var rb = document.getElementById("retryBtn");
+        if (rb) rb.addEventListener("click", function(){ refresh(true); });
+      } else {
+        emptyState.innerHTML =
+          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8a7690" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+          '<b>No players found</b><span>Try a different name or clear the filters.</span>';
+      }
+    } else {
+      emptyState.style.display = "none";
+      var maxOwn = 40;
+      var html = sorted.map(function(p){
+        var total = fmtDelta(p.total);
+        var event = fmtDelta(p.event);
+        var ownPct = Math.min(100, (p.own / maxOwn) * 100);
+        return (
+          '<tr>' +
+            '<td class="col-player"><div class="player-cell">' +
+              '<span class="player-name">' + escapeHtml(p.name) + '</span>' +
+              '<span class="player-meta"><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span>' + escapeHtml(p.team) + '</span>' +
+            '</div></td>' +
+            '<td class="num price">' + fmtPrice(p.gw1) + '</td>' +
+            '<td class="num price">' + fmtPrice(p.now) + '</td>' +
+            '<td class="num"><span class="delta ' + total.cls + '"><span class="arrow">' + total.arrow + '</span>' + total.text + '</span></td>' +
+            '<td class="num"><span class="delta ' + event.cls + '"><span class="arrow">' + event.arrow + '</span>' + event.text + '</span></td>' +
+            '<td class="num"><div class="own-bar-wrap">' + p.own.toFixed(1) + '%<span class="own-bar"><i style="width:' + ownPct + '%"></i></span></div></td>' +
+          '</tr>'
+        );
+      }).join("");
+      tbody.innerHTML = html;
+    }
+    countLabel.textContent = sorted.length + (sorted.length === 1 ? " player" : " players") + (state.players.length ? " · updated " + timeAgo(state.lastUpdated) : "");
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function setStatus(mode, text){
+    statusDot.className = "status-dot" + (mode === "live" ? " live" : mode === "err" ? " err" : "");
+    statusText.textContent = text;
+  }
+
+  async function refresh(isManual){
+    if (state.polling) return;
+    state.polling = true;
+    refreshBtn.querySelector ? null : null;
+    refreshBtn.innerHTML = '<span class="spin">⟳</span>';
+    setStatus("", isManual ? "Refreshing…" : "Checking for updates…");
+    try{
+      var data = await fetchBootstrap(function(attempt, total){
+        if (total > 1) setStatus("", "Connecting (source " + attempt + "/" + total + ")…");
+      });
+      var mapped = mapPlayers(data);
+      var changed = detectChanges(state.players, mapped);
+      state.players = mapped;
+      state.lastUpdated = new Date();
+      state.loadErrorMsg = null;
+      try{ localStorage.__pw_test = 1; }catch(e){}
+      persistSnapshot(mapped, state.lastUpdated);
+      setStatus("live", "Live");
+      render();
+      if (isManual) showToast("Prices refreshed");
+      if (changed.length){
+        showToast(changed.length + " price" + (changed.length > 1 ? "s" : "") + " just changed");
+      }
+    }catch(e){
+      if (!state.players.length){
+        var snap = loadSnapshot();
+        if (snap && snap.players.length){
+          state.players = snap.players;
+          state.lastUpdated = new Date(snap.at);
+          setStatus("err", "Offline — showing last data");
+        } else {
+          state.loadErrorMsg = "All data sources are unreachable right now. This can happen if a proxy is temporarily down — tap Retry in a moment.";
+          setStatus("err", "Couldn't load data");
+        }
+      } else {
+        setStatus("err", "Offline — showing last data");
+      }
+      if (isManual) showToast("Couldn't reach FPL right now");
+      render();
+    } finally {
+      state.polling = false;
+      refreshBtn.innerHTML = "⟳";
+    }
+  }
+
+  function detectChanges(oldList, newList){
+    if (!oldList.length) return [];
+    var oldMap = {};
+    oldList.forEach(function(p){ oldMap[p.id] = p.now; });
+    return newList.filter(function(p){ return oldMap[p.id] !== undefined && oldMap[p.id] !== p.now; });
+  }
+
+  function persistSnapshot(players, at){
+    try{
+      var trimmed = players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status]; });
+      localStorage.setItem(STORE_KEY_SNAPSHOT, JSON.stringify({ at: at.toISOString(), data: trimmed }));
+    }catch(e){}
+  }
+
+  function loadSnapshot(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY_SNAPSHOT);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      var players = parsed.data.map(function(a){
+        return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9] };
+      });
+      return { players: players, at: parsed.at };
+    }catch(e){ return null; }
+  }
+
+  document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var th = btn.closest("th");
+      var key = th.getAttribute("data-key");
+      if (state.sortKey === key){
+        state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+      } else {
+        state.sortKey = key;
+        state.sortDir = key === "name" ? "asc" : "desc";
+      }
+      render();
+    });
+  });
+
+  searchInput.addEventListener("input", function(){
+    state.search = searchInput.value;
+    clearSearch.style.display = state.search ? "block" : "none";
+    render();
+  });
+  clearSearch.addEventListener("click", function(){
+    searchInput.value = "";
+    state.search = "";
+    clearSearch.style.display = "none";
+    render();
+    searchInput.focus();
+  });
+
+  posBar.addEventListener("click", function(e){
+    var chip = e.target.closest(".pos-chip");
+    if (!chip) return;
+    document.querySelectorAll(".pos-chip").forEach(function(c){ c.classList.remove("active"); });
+    chip.classList.add("active");
+    state.pos = chip.getAttribute("data-pos");
+    render();
+  });
+
+  risersOnly.addEventListener("click", function(){
+    state.moversOnly = !state.moversOnly;
+    risersOnly.classList.toggle("active", state.moversOnly);
+    render();
+  });
+  risersOnly.addEventListener("keydown", function(e){
+    if (e.key === "Enter" || e.key === " "){ e.preventDefault(); risersOnly.click(); }
+  });
+
+  refreshBtn.addEventListener("click", function(){ refresh(true); });
+
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState === "visible") refresh(false);
+  });
+
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  var snap = loadSnapshot();
+  if (snap){
+    state.players = snap.players;
+    state.lastUpdated = new Date(snap.at);
+    render();
+  }
+
+  refresh(false);
+  setInterval(function(){ refresh(false); }, POLL_MS);
+
+})();
+</script>
+</body>
+</html>
