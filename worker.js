@@ -1,4 +1,5 @@
 const FPL_API = "https://fantasy.premierleague.com/api/";
+const PRICE_DATA_API = "https://livefpl.us/api/prices.json";
 
 const JSON_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,27 @@ async function handleFpl(url) {
       headers: {
         ...JSON_HEADERS,
         "Cache-Control": requestedPath === "bootstrap-static/" ? "public, max-age=60" : "public, max-age=30"
+      }
+    });
+  } catch (error) {
+    return json({ error: String(error) }, 502);
+  }
+}
+
+async function handlePriceData() {
+  try {
+    const response = await fetch(PRICE_DATA_API, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; PriceWatch/1.0)",
+        "Accept": "application/json"
+      }
+    });
+    const body = await response.text();
+    return new Response(body, {
+      status: response.status,
+      headers: {
+        ...JSON_HEADERS,
+        "Cache-Control": "public, max-age=60"
       }
     });
   } catch (error) {
@@ -116,6 +138,14 @@ async function serveAsset(request, env) {
   // hidden list of team IDs and could override the real application state.
   html = html.replace(/<!-- pricewatch:team-ui-fix -->[\s\S]*?<\/script>/g, "");
 
+  // Add navigation to the dedicated Price Change screen only to the main app.
+  if (html.includes('<h1>Price Watch<span class="sub">FPL price change tracker</span></h1>') && !html.includes('href="/price-changes.html"')) {
+    html = html.replace(
+      '  <div class="search-row">',
+      '  <div style="margin:-2px 0 9px"><a href="/price-changes.html" style="color:var(--accent);text-decoration:none;font-size:12px;font-weight:650">Price Change →</a></div>\n\n  <div class="search-row">'
+    );
+  }
+
   // The source HTML uses double quotes for this variable declaration.
   // Inject the authoritative handlers inside the app's closure so they can
   // update the real state object used by applyFilters() and render().
@@ -166,6 +196,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/fpl" || url.pathname === "/.netlify/functions/fpl") return handleFpl(url);
     if (url.pathname === "/team") return handleTeam(url);
+    if (url.pathname === "/price-data") return handlePriceData();
     return serveAsset(request, env);
   }
 };
