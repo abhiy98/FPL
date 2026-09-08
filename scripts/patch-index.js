@@ -76,11 +76,23 @@ text = text.replace(/\s*var isFav = state\.favs\.has\(p\.id\), isWatch =/g, " va
 text = text.replace(/\s*<button class="pw-btn" id="pwModalFav">'\+\(state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite'\)\+'<\/button>/g, "");
 text = text.replace(/\s*document\.getElementById\('pwModalFav'\)\.addEventListener\('click',function\(\)\{toggleFavourite\(p\.id\);this\.textContent=state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite';\}\);/g, "");
 
-// Add a permanent Price Change entry point to the static HTML.
+// Add the FPL-style price-change countdown directly to the main header.
 replaceIfPresent(
-  "Price Change navigation",
-  '  <div class="search-row">',
-  '  <div class="pw-page-nav"><a href="/price-changes.html">Price Change</a></div>\n\n  <div class="search-row">'
+  "price change timer markup",
+  '  </div>\n\n  <div class="search-row">',
+  '  </div>\n  <div class="pw-price-timer"><span>Price change</span><strong id="pwPriceTimer">--:--:--</strong></div>\n\n  <div class="search-row">'
+);
+
+replaceIfPresent(
+  "price change timer styles",
+  '</style>',
+  '.pw-price-timer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px;padding:7px 10px;background:var(--panel);border:1px solid var(--line);border-radius:8px}.pw-price-timer span{font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-faint);font-weight:650}.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}\n</style>'
+);
+
+replaceIfPresent(
+  "price change timer logic",
+  '  var risersOnly = document.getElementById("risersOnly");',
+  '  var risersOnly = document.getElementById("risersOnly");\n\n  function updatePriceTimer(){\n    var el=document.getElementById("pwPriceTimer"),ev=currentEvent(state.events);\n    if(!el){return;}\n    if(!ev||!ev.deadline_time){el.textContent="--:--:--";return;}\n    var diff=Math.max(0,new Date(ev.deadline_time).getTime()-Date.now()),s=Math.floor(diff/1000);\n    var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;\n    el.textContent=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");\n  }\n  setInterval(updatePriceTimer,1000);\n  updatePriceTimer();'
 );
 
 // The displayed Team value should be the sum of the current prices of the 15
@@ -88,13 +100,6 @@ replaceIfPresent(
 const oldTeamNote = "    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device.';";
 const newTeamNote = "    var teamValue=state.team?state.players.filter(function(p){return state.team.picks.has(p.id);}).reduce(function(sum,p){return sum+p.now;},0):0; var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(teamValue/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Watchlist and your Team ID are saved locally on this device.';";
 replaceIfPresent("calculated team value", oldTeamNote, newTeamNote);
-
-// Add styling for the static navigation link.
-replaceIfPresent(
-  "Price Change navigation styles",
-  '</style>',
-  '.pw-page-nav{margin:-2px 0 9px}.pw-page-nav a{display:inline-block;color:var(--accent);text-decoration:none;font-size:12px;font-weight:650;padding:6px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel)}.pw-page-nav a:active{opacity:.7}\n</style>'
-);
 
 fs.writeFileSync(file, text);
 console.log("Price Watch build patch complete");
