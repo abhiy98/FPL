@@ -1,0 +1,89 @@
+name: Patch Price Watch
+
+on:
+  push:
+    branches: [Changes]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: Changes
+
+      - name: Patch index
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text()
+
+          old_proxy = '    { build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } },'
+          new_proxy = '    { build: function(u){ return "/.netlify/functions/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },'
+          if old_proxy not in text:
+              raise SystemExit('Netlify proxy definition not found')
+          text = text.replace(old_proxy, new_proxy, 1)
+
+          old_fetch = '  async function fetchBootstrap(onAttempt){'
+          old_check = '        if (!data || !data.elements || !data.elements.length) throw new Error("Unexpected payload");'
+          new_check = '        if (!data || !data.elements || data.elements.length < 300) throw new Error("Incomplete player payload");'
+          if old_check not in text:
+              raise SystemExit('Bootstrap validation not found')
+          text = text.replace(old_check, new_check, 1)
+
+          old_team = '''  async function loadMyTeam(){
+    var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
+    var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
+    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''}; try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
+  }'''
+          new_team = '''  async function loadMyTeam(){
+    var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
+    var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
+    try{
+      var entry=await fetchPublicApi('entry/'+id+'/');
+      var gw=entry.current_event || (state.currentGameweek && state.currentGameweek.id) || 1;
+      var picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/');
+      var picks=picksData.picks||[];
+      if(!picks.length && gw>1){
+        picksData=await fetchPublicApi('entry/'+id+'/event/'+(gw-1)+'/picks/');
+        picks=picksData.picks||[];
+        if(picks.length) gw=gw-1;
+      }
+      if(!picks.length) throw new Error('No picks returned');
+      state.team={id:id,picks:new Set(picks.map(function(x){return x.element;})),value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''};
+      try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){}
+      state.myTeamOnly=true;
+      var teamChip=document.getElementById('myTeamOnly');if(teamChip)teamChip.classList.add('active');
+      showToast('My team loaded · GW '+gw);
+      render();
+    }catch(e){showToast("Couldn't load that FPL Team ID");}
+    finally{button.disabled=false;button.textContent='Load my team';}
+  }'''
+          if old_team not in text:
+              raise SystemExit('Team loader not found')
+          text = text.replace(old_team, new_team, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: load complete player pool and my team"
+          git push origin HEAD:Changes
+
+      - name: Remove patch workflow
+        if: success()
+        run: |
+          git rm .github/workflows/fix-price-watch.yml
+          git commit -m "chore: remove temporary patch workflow"
+          git push origin HEAD:Changes
