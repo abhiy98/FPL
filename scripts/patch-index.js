@@ -24,7 +24,7 @@ replaceOnce(
 const oldTeam = `  async function loadMyTeam(){
     var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
     var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
-    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''}; try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
+    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.bank||0,name:entry.name||''}; try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
   }`;
 
 const newTeam = `  async function loadMyTeam(){
@@ -46,31 +46,14 @@ const newTeam = `  async function loadMyTeam(){
 
 replaceOnce("My Team loader", oldTeam, newTeam);
 
-// Defensive layer for the team filter: reapply the loaded IDs whenever the
-// normal price refresh rebuilds the table DOM.
-if (text.indexOf("pricewatch:team-ui-fix") === -1) {
-  const teamUi = String.raw`<script>
-(function(){
-  var teamIds=null;
-  function rows(){return Array.prototype.slice.call(document.querySelectorAll('#tbody tr[data-player-id]'));}
-  function apply(){
-    if(!teamIds)return;
-    rows().forEach(function(row){row.style.display=teamIds.has(Number(row.getAttribute('data-player-id'))) ? '' : 'none';});
-    var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
-    var count=document.getElementById('countLabel');if(count)count.textContent=teamIds.size+' team players';
-  }
-  window.__priceWatchApplyTeam=function(ids){teamIds=new Set(ids.map(Number));apply();};
-  var body=document.getElementById('tbody');
-  if(body)new MutationObserver(function(){apply();}).observe(body,{childList:true});
-})();
-</script>`;
-  text = text.replace('</body>', '<!-- pricewatch:team-ui-fix -->' + teamUi + '</body>');
-}
+// Do not inject a second DOM-level team filter here. The application state
+// (`state.myTeamOnly`) and render() are the single source of truth.
+// This also prevents stale team IDs from surviving Clear Team.
 
 replaceOnce(
-  "expose team IDs",
-  '      state.myTeamOnly=true;\n      var chip=document.getElementById(\'myTeamOnly\');if(chip)chip.classList.add(\'active\');',
-  '      state.myTeamOnly=true;\n      var chip=document.getElementById(\'myTeamOnly\');if(chip)chip.classList.add(\'active\');\n      if(window.__priceWatchApplyTeam)window.__priceWatchApplyTeam(Array.from(state.team.picks));'
+  "clear team behavior",
+  "  document.getElementById('pwClearTeam').addEventListener('click',function(){state.team=null;try{localStorage.removeItem(STORE_KEY_TEAM);}catch(e){}var input=document.getElementById('pwTeamId');if(input)input.value='';render();showToast('Team cleared');});",
+  "  document.getElementById('pwClearTeam').addEventListener('click',function(){state.team=null;state.myTeamOnly=false;try{localStorage.removeItem(STORE_KEY_TEAM);}catch(e){}var input=document.getElementById('pwTeamId');if(input)input.value='';var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.remove('active');render();showToast('Team cleared');});"
 );
 
 fs.writeFileSync(file, text);
