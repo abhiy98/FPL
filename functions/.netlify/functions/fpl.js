@@ -6,8 +6,8 @@ export async function onRequestGet({ request }) {
     .replace(/^https?:\/\/[^/]+\/api\//i, "")
     .replace(/^\/+/, "");
 
-  const allowed = /^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/event\/\d+\/picks\/? )$/;
   const normalized = requestedPath.replace(/\s+$/, "");
+  const allowed = /^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/event\/\d+\/picks\/?)$/;
   if (!allowed.test(normalized)) {
     return new Response(JSON.stringify({ error: "Unsupported FPL API path" }), {
       status: 400,
