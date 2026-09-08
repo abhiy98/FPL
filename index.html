@@ -124,6 +124,19 @@
     padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;
   }
   .pos-chip.active{background:rgba(0,255,133,0.14);border-color:var(--rise);color:var(--rise);}
+  #favoritesOnly{margin-left:6px;border-left:1px solid var(--line-strong);padding-left:14px;}
+  #favoritesOnly.active{background:rgba(232,196,107,0.16);border-color:var(--gold);color:var(--gold);}
+  #risersOnly.active{background:rgba(4,245,255,0.14);border-color:var(--accent);color:var(--accent);}
+
+  .fav-btn{
+    all:unset;cursor:pointer;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    width:20px;height:20px;
+    color:var(--text-faint);
+    font-size:15px;line-height:1;
+  }
+  .fav-btn:active{transform:scale(0.9);}
+  .fav-btn.active{color:var(--gold);}
 
   /* ---------- table ---------- */
   .table-wrap{
@@ -147,6 +160,7 @@
     padding:11px 14px;cursor:pointer;
     width:100%;box-sizing:border-box;
   }
+  th.num button.sort-btn{justify-content:flex-end;}
   th button.sort-btn:active{background:rgba(255,255,255,0.05);}
   .sort-arrows{display:flex;flex-direction:column;line-height:0;gap:1px;opacity:0.35;}
   .sort-arrows svg{width:8px;height:8px;}
@@ -171,7 +185,8 @@
     border-bottom:1px solid var(--line);
     white-space:nowrap;
   }
-  .player-cell{display:flex;flex-direction:column;gap:1px;padding:9px 12px;}
+  .player-cell{display:flex;align-items:center;gap:9px;padding:9px 12px;}
+  .player-cell .player-text{display:flex;flex-direction:column;gap:1px;min-width:0;}
   .player-name{font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;}
   .player-meta{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);}
   .pos-badge{
@@ -258,7 +273,6 @@
       <input id="search" type="text" placeholder="Search player or club" autocomplete="off" autocapitalize="off" spellcheck="false">
       <button class="clear-btn" id="clearSearch" aria-label="Clear search">×</button>
     </div>
-    <div class="filter-chip" id="risersOnly" role="button" tabindex="0">Movers only</div>
   </div>
 
   <div class="subbar" id="posBar">
@@ -267,6 +281,8 @@
     <div class="pos-chip" data-pos="DEF">Defenders</div>
     <div class="pos-chip" data-pos="MID">Midfielders</div>
     <div class="pos-chip" data-pos="FWD">Forwards</div>
+    <div class="pos-chip" id="favoritesOnly">★ Favourites</div>
+    <div class="pos-chip" id="risersOnly">Movers only</div>
   </div>
 </header>
 
@@ -280,11 +296,11 @@
             <span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span>
           </button>
         </th>
-        <th data-key="gw1"><button class="sort-btn">GW1 price<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
-        <th data-key="now"><button class="sort-btn">Current<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
-        <th data-key="total"><button class="sort-btn">Total Δ<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
-        <th data-key="event"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
-        <th data-key="own"><button class="sort-btn">Owned<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="gw1" class="num"><button class="sort-btn">GW1 price<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="now" class="num"><button class="sort-btn">Current<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="total" class="num"><button class="sort-btn">Total Δ<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="own" class="num"><button class="sort-btn">Owned<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
       </tr>
     </thead>
     <tbody id="tbody">
@@ -315,6 +331,7 @@
   "use strict";
 
   var STORE_KEY_SNAPSHOT = "pricewatch:lastGood";
+  var STORE_KEY_FAVS = "pricewatch:favs";
   var POLL_MS = 3 * 60 * 1000;
   var BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/";
   var PROXIES = [
@@ -332,6 +349,17 @@
     return fetch(url, { cache: "no-store", signal: ctrl.signal }).finally(function(){ clearTimeout(timer); });
   }
 
+  function loadFavs(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY_FAVS);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    }catch(e){ return new Set(); }
+  }
+
+  function saveFavs(favSet){
+    try{ localStorage.setItem(STORE_KEY_FAVS, JSON.stringify(Array.from(favSet))); }catch(e){}
+  }
+
   var state = {
     players: [],
     sortKey: "total",
@@ -339,6 +367,8 @@
     search: "",
     pos: "ALL",
     moversOnly: false,
+    favoritesOnly: false,
+    favs: loadFavs(),
     lastUpdated: null,
     polling: false
   };
@@ -435,6 +465,7 @@
     return list.filter(function(p){
       if (state.pos !== "ALL" && p.pos !== state.pos) return false;
       if (state.moversOnly && p.total === 0) return false;
+      if (state.favoritesOnly && !state.favs.has(p.id)) return false;
       if (q && p.name.toLowerCase().indexOf(q) === -1 && p.team.toLowerCase().indexOf(q) === -1) return false;
       return true;
     });
@@ -491,11 +522,15 @@
         var total = fmtDelta(p.total);
         var event = fmtDelta(p.event);
         var ownPct = Math.min(100, (p.own / maxOwn) * 100);
+        var isFav = state.favs.has(p.id);
         return (
           '<tr>' +
             '<td class="col-player"><div class="player-cell">' +
-              '<span class="player-name">' + escapeHtml(p.name) + '</span>' +
-              '<span class="player-meta"><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span>' + escapeHtml(p.team) + '</span>' +
+              '<button class="fav-btn' + (isFav ? ' active' : '') + '" data-fav-id="' + p.id + '" aria-label="Toggle favourite">' + (isFav ? '★' : '☆') + '</button>' +
+              '<div class="player-text">' +
+                '<span class="player-name">' + escapeHtml(p.name) + '</span>' +
+                '<span class="player-meta"><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span>' + escapeHtml(p.team) + '</span>' +
+              '</div>' +
             '</div></td>' +
             '<td class="num price">' + fmtPrice(p.gw1) + '</td>' +
             '<td class="num price">' + fmtPrice(p.now) + '</td>' +
@@ -620,21 +655,36 @@
   });
 
   posBar.addEventListener("click", function(e){
-    var chip = e.target.closest(".pos-chip");
+    var favChip = e.target.closest("#favoritesOnly");
+    if (favChip){
+      state.favoritesOnly = !state.favoritesOnly;
+      favChip.classList.toggle("active", state.favoritesOnly);
+      render();
+      return;
+    }
+    var moverChip = e.target.closest("#risersOnly");
+    if (moverChip){
+      state.moversOnly = !state.moversOnly;
+      moverChip.classList.toggle("active", state.moversOnly);
+      render();
+      return;
+    }
+    var chip = e.target.closest(".pos-chip[data-pos]");
     if (!chip) return;
-    document.querySelectorAll(".pos-chip").forEach(function(c){ c.classList.remove("active"); });
+    document.querySelectorAll(".pos-chip[data-pos]").forEach(function(c){ c.classList.remove("active"); });
     chip.classList.add("active");
     state.pos = chip.getAttribute("data-pos");
     render();
   });
 
-  risersOnly.addEventListener("click", function(){
-    state.moversOnly = !state.moversOnly;
-    risersOnly.classList.toggle("active", state.moversOnly);
+  tbody.addEventListener("click", function(e){
+    var favBtn = e.target.closest(".fav-btn");
+    if (!favBtn) return;
+    var id = parseInt(favBtn.getAttribute("data-fav-id"), 10);
+    if (state.favs.has(id)) state.favs.delete(id);
+    else state.favs.add(id);
+    saveFavs(state.favs);
     render();
-  });
-  risersOnly.addEventListener("keydown", function(e){
-    if (e.key === "Enter" || e.key === " "){ e.preventDefault(); risersOnly.click(); }
   });
 
   refreshBtn.addEventListener("click", function(){ refresh(true); });
