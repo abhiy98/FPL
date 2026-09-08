@@ -101,7 +101,7 @@ async function handleTeam(url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === "/fpl") return handleFpl(url);
+    if (url.pathname === "/fpl" || url.pathname === "/.netlify/functions/fpl") return handleFpl(url);
     if (url.pathname === "/team") return handleTeam(url);
     return env.ASSETS.fetch(request);
   }
