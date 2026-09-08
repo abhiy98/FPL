@@ -23,26 +23,19 @@ async function fplJson(path) {
 }
 
 async function handleFpl(url) {
-  const requestedPath = String(url.searchParams.get("path") || "bootstrap-static/")
-    .replace(/^https?:\/\/[^/]+\/api\//i, "")
-    .replace(/^\/+/, "");
+  const requestedPath = String(url.searchParams.get("path") || "bootstrap-static/").replace(/^https?:\/\/[^/]+\/api\//i, "").replace(/^\/+/, "");
   const allowed = /^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/event\/\d+\/picks\/?)$/;
   if (!allowed.test(requestedPath)) return json({ error: "Unsupported FPL API path" }, 400);
   try {
     const response = await fetch(FPL_API + requestedPath, { headers: FETCH_HEADERS });
     const body = await response.text();
-    return new Response(body, {
-      status: response.status,
-      headers: { ...JSON_HEADERS, "Cache-Control": requestedPath === "bootstrap-static/" ? "public, max-age=60" : "public, max-age=30" }
-    });
+    return new Response(body, { status: response.status, headers: { ...JSON_HEADERS, "Cache-Control": requestedPath === "bootstrap-static/" ? "public, max-age=60" : "public, max-age=30" } });
   } catch (error) { return json({ error: String(error) }, 502); }
 }
 
 async function handlePriceData() {
   try {
-    const response = await fetch(PRICE_PREDICTOR_API, {
-      headers: { ...FETCH_HEADERS, "Cache-Control": "no-cache" }
-    });
+    const response = await fetch(PRICE_PREDICTOR_API, { headers: { ...FETCH_HEADERS, "Cache-Control": "no-cache" } });
     if (!response.ok) throw new Error("Price predictor returned HTTP " + response.status);
     const raw = await response.json();
     const source = raw && raw.players ? raw.players : raw;
@@ -56,9 +49,7 @@ async function handlePriceData() {
       };
     });
     return json({ players }, 200, { "Cache-Control": "public, max-age=60" });
-  } catch (error) {
-    return json({ error: String(error), players: {} }, 502);
-  }
+  } catch (error) { return json({ error: String(error), players: {} }, 502); }
 }
 
 async function handleTeam(url) {
@@ -81,15 +72,7 @@ async function handleTeam(url) {
       } catch (_) {}
     }
     if (picks.length !== 15) throw new Error("FPL returned " + picks.length + " players instead of 15");
-    return json({
-      id,
-      name: entry.name || "",
-      value: entry.last_deadline_value || entry.value || 0,
-      bank: entry.last_deadline_bank || entry.bank || 0,
-      currentGameweek,
-      gameweek,
-      picks: picks.map((pick) => Number(pick.element))
-    }, 200, { "Cache-Control": "public, max-age=30" });
+    return json({ id, name: entry.name || "", value: entry.last_deadline_value || entry.value || 0, bank: entry.last_deadline_bank || entry.bank || 0, currentGameweek, gameweek, picks: picks.map((pick) => Number(pick.element)) }, 200, { "Cache-Control": "public, max-age=30" });
   } catch (error) { return json({ error: String(error) }, 502); }
 }
 
