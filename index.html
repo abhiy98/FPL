@@ -250,6 +250,16 @@
   ::-webkit-scrollbar{height:9px;width:9px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.14);border-radius:5px;}
+
+/* ---------- Price Watch enhancements ---------- */
+.pw-dashboard{padding:12px 16px 10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--ink),var(--panel));}
+.pw-dashboard-top{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.pw-dashboard-top::-webkit-scrollbar{display:none}
+.pw-stat{min-width:130px;flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 11px}.pw-stat .label{font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-faint)}.pw-stat .value{font-size:18px;font-weight:700;margin-top:3px}.pw-stat .hint{font-size:10.5px;color:var(--text-faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pw-tools{display:flex;gap:8px;margin-top:9px;align-items:center;flex-wrap:wrap}.pw-team-input{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:9px 11px;font-size:13px;outline:none}.pw-team-input:focus{border-color:var(--accent)}.pw-btn{border:1px solid var(--line-strong);background:var(--panel);color:var(--text-dim);border-radius:9px;padding:8px 11px;font-size:12px;font-weight:600;cursor:pointer}.pw-btn.primary{border-color:var(--accent);color:var(--accent);background:rgba(4,245,255,.08)}
+.pw-team-note{font-size:10.5px;color:var(--text-faint);margin-top:6px}.pw-row-owned{box-shadow:inset 3px 0 0 var(--accent)}.pw-row-watch{box-shadow:inset 3px 0 0 var(--gold)}.watch-btn{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:20px;height:20px;color:var(--text-faint);font-size:13px}.watch-btn.active{color:var(--accent)}.momentum{font-size:10px;font-weight:700;margin-left:4px}.momentum.up{color:var(--rise)}.momentum.down{color:var(--fall)}.momentum.neutral{color:var(--text-faint)}
+.pw-modal-backdrop{position:fixed;inset:0;background:rgba(9,0,12,.72);display:none;align-items:flex-end;justify-content:center;z-index:100;padding:12px}.pw-modal-backdrop.open{display:flex}.pw-modal{width:min(720px,100%);max-height:min(82vh,760px);overflow:auto;background:var(--panel);border:1px solid var(--line-strong);border-radius:16px 16px 12px 12px;box-shadow:0 18px 50px rgba(0,0,0,.45)}.pw-modal-head{position:sticky;top:0;z-index:2;background:var(--panel);border-bottom:1px solid var(--line);padding:14px 15px 11px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.pw-modal-title{font-size:18px;font-weight:700}.pw-modal-sub{font-size:11px;color:var(--text-faint);margin-top:3px}.pw-close{all:unset;cursor:pointer;font-size:22px;line-height:1;color:var(--text-faint);padding:0 4px}.pw-modal-body{padding:13px 15px 18px}.pw-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.pw-detail-card{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:9px}.pw-detail-card span{display:block;font-size:10px;color:var(--text-faint)}.pw-detail-card b{display:block;font-size:15px;margin-top:2px}.pw-history{margin-top:14px}.pw-history h3{font-size:11px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-faint);margin:0 0 8px}.pw-history-bars{display:flex;align-items:flex-end;gap:4px;height:110px;padding:8px;border:1px solid var(--line);background:var(--panel-2);border-radius:9px}.pw-history-bar{flex:1;min-width:4px;background:rgba(4,245,255,.72);border-radius:3px 3px 0 0}.pw-history-bar small{display:block;font-size:8px;color:var(--text-faint);text-align:center;margin-top:2px}.pw-history-empty{color:var(--text-faint);font-size:12px;padding:14px 0}.pw-detail-actions{display:flex;gap:7px;margin-top:12px}.pw-detail-actions .pw-btn{flex:1}
+@media(max-width:600px){.pw-dashboard{padding-left:12px;padding-right:12px}.pw-stat{min-width:118px}.pw-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pw-modal-backdrop{padding:0}.pw-modal{max-height:88vh;border-radius:16px 16px 0 0}}
+
 </style>
 </head>
 <body>
@@ -283,9 +293,26 @@
     <div class="pos-chip" data-pos="FWD">Forwards</div>
     <div class="pos-chip" id="favoritesOnly">★ Favourites</div>
     <div class="pos-chip" id="risersOnly">Movers only</div>
+    <div class="pos-chip" id="watchlistOnly">◉ Watchlist</div>
+    <div class="pos-chip" id="risingOnly">▲ Rising</div>
+    <div class="pos-chip" id="fallingOnly">▼ Falling</div>
+    <div class="pos-chip" id="differentialsOnly">◇ Differentials</div>
+    <div class="pos-chip" id="myTeamOnly">♙ My Team</div>
   </div>
 </header>
 
+
+<section class="pw-dashboard" id="pwDashboard">
+  <div class="pw-dashboard-top">
+    <div class="pw-stat"><div class="label">Rising</div><div class="value" id="pwRisingCount">—</div><div class="hint">players moving up</div></div>
+    <div class="pw-stat"><div class="label">Falling</div><div class="value" id="pwFallingCount">—</div><div class="hint">players moving down</div></div>
+    <div class="pw-stat"><div class="label">Biggest move</div><div class="value" id="pwBiggestMove">—</div><div class="hint" id="pwBiggestMoveHint">awaiting data</div></div>
+    <div class="pw-stat"><div class="label">Deadline</div><div class="value" id="pwDeadline">—</div><div class="hint">next gameweek lock</div></div>
+  </div>
+  <div class="pw-tools"><input class="pw-team-input" id="pwTeamId" inputmode="numeric" placeholder="Your FPL Team ID (optional)" autocomplete="off"><button class="pw-btn primary" id="pwLoadTeam">Load my team</button><button class="pw-btn" id="pwClearTeam" style="display:none">Clear team</button></div>
+  <div class="pw-team-note" id="pwTeamNote">Favourites, watchlist and your Team ID are saved locally on this device. No login is required.</div>
+</section>
+<div class="pw-modal-backdrop" id="pwModalBackdrop"><div class="pw-modal" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle"><div class="pw-modal-head"><div><div class="pw-modal-title" id="pwModalTitle">Player</div><div class="pw-modal-sub" id="pwModalSub"></div></div><button class="pw-close" id="pwModalClose" aria-label="Close player details">×</button></div><div class="pw-modal-body" id="pwModalBody"></div></div></div>
 <div class="table-wrap" id="tableWrap">
   <table>
     <thead>
@@ -359,6 +386,14 @@
   function saveFavs(favSet){
     try{ localStorage.setItem(STORE_KEY_FAVS, JSON.stringify(Array.from(favSet))); }catch(e){}
   }
+  var STORE_KEY_WATCHLIST = "pricewatch:watchlist";
+  var STORE_KEY_TEAM = "pricewatch:teamId";
+  function loadWatchlist(){ try{ var raw=localStorage.getItem(STORE_KEY_WATCHLIST); return raw ? new Set(JSON.parse(raw)) : new Set(); }catch(e){ return new Set(); } }
+  function saveWatchlist(set){ try{ localStorage.setItem(STORE_KEY_WATCHLIST, JSON.stringify(Array.from(set))); }catch(e){} }
+  function currentEvent(events){ var list=events||[]; for(var i=0;i<list.length;i++) if(list[i].is_current) return list[i]; for(var j=0;j<list.length;j++) if(!list[j].finished) return list[j]; return list.length ? list[list.length-1] : null; }
+  function formatCountdown(deadline){ if(!deadline) return "—"; var diff=new Date(deadline).getTime()-Date.now(); if(diff<=0)return "Locked"; var s=Math.floor(diff/1000),d=Math.floor(s/86400); s%=86400; var h=Math.floor(s/3600); s%=3600; var m=Math.floor(s/60); return d?d+"d "+h+"h":h?h+"h "+m+"m":m+"m"; }
+  async function fetchPublicApi(path){ var lastErr=null; for(var i=0;i<PROXIES.length;i++){ try{ var url=PROXIES[i].build(BOOTSTRAP_URL.replace(/bootstrap-static\/$/,"")+path.replace(/^\//,"")); var res=await fetchWithTimeout(url,8000); if(!res.ok) throw new Error("HTTP "+res.status); return await PROXIES[i].parse(res); }catch(e){lastErr=e;} } throw lastErr || new Error("All sources failed"); }
+
 
   var state = {
     players: [],
@@ -368,6 +403,8 @@
     pos: "ALL",
     moversOnly: false,
     favoritesOnly: false,
+    watchlistOnly: false, risingOnly: false, fallingOnly: false, differentialsOnly: false, myTeamOnly: false,
+    watchlist: loadWatchlist(), team: null, events: [], currentGameweek: null,
     favs: loadFavs(),
     lastUpdated: null,
     polling: false
@@ -439,23 +476,23 @@
 
   function mapPlayers(data){
     var teams = {};
-    (data.teams || []).forEach(function(t){ teams[t.id] = t.short_name; });
+    (data.teams || []).forEach(function(t){ teams[t.id] = { name: t.name || "", shortName: t.short_name || "" }; });
     var posMap = { 1: "GKP", 2: "DEF", 3: "MID", 4: "FWD" };
     return (data.elements || []).map(function(el){
       var now = el.now_cost;
       var startChange = el.cost_change_start || 0;
-      var gw1 = now - startChange;
+      var team = teams[el.team] || { name: "", shortName: "" };
+      var netTransfers = (el.transfers_in_event || 0) - (el.transfers_out_event || 0);
       return {
-        id: el.id,
-        name: el.web_name,
-        team: teams[el.team] || "",
-        pos: posMap[el.element_type] || "",
-        gw1: gw1,
-        now: now,
-        total: startChange,
-        event: el.cost_change_event || 0,
-        own: parseFloat(el.selected_by_percent) || 0,
-        status: el.status
+        id: el.id, name: el.web_name, team: team.shortName, teamName: team.name,
+        pos: posMap[el.element_type] || "", gw1: now - startChange, now: now,
+        total: startChange, event: el.cost_change_event || 0,
+        own: parseFloat(el.selected_by_percent) || 0, status: el.status,
+        transfersIn: el.transfers_in_event || 0, transfersOut: el.transfers_out_event || 0,
+        netTransfers: netTransfers, points: el.total_points || 0,
+        form: parseFloat(el.form) || 0, epNext: parseFloat(el.ep_next) || 0,
+        minutes: el.minutes || 0,
+        valueScore: now ? ((el.total_points || 0) / (now / 10)) : 0
       };
     });
   }
@@ -466,7 +503,12 @@
       if (state.pos !== "ALL" && p.pos !== state.pos) return false;
       if (state.moversOnly && p.total === 0) return false;
       if (state.favoritesOnly && !state.favs.has(p.id)) return false;
-      if (q && p.name.toLowerCase().indexOf(q) === -1 && p.team.toLowerCase().indexOf(q) === -1) return false;
+      if (state.watchlistOnly && !state.watchlist.has(p.id)) return false;
+      if (state.risingOnly && p.total <= 0) return false;
+      if (state.fallingOnly && p.total >= 0) return false;
+      if (state.differentialsOnly && p.own > 5) return false;
+      if (state.myTeamOnly && (!state.team || !state.team.picks.has(p.id))) return false;
+      if (q && p.name.toLowerCase().indexOf(q) === -1 && p.team.toLowerCase().indexOf(q) === -1 && (p.teamName || "").toLowerCase().indexOf(q) === -1) return false;
       return true;
     });
   }
@@ -495,54 +537,40 @@
   }
 
   function render(){
-    var filtered = applyFilters(state.players);
-    var sorted = sortList(filtered);
-    renderHeaderState();
-
+    var filtered = applyFilters(state.players), sorted = sortList(filtered);
+    renderHeaderState(); renderDashboard();
     if (!sorted.length){
       tbody.innerHTML = "";
       emptyState.style.display = "flex";
-      if (!state.players.length){
-        emptyState.innerHTML =
-          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8a7690" stroke-width="1.6"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>' +
-          '<b>Couldn\'t load prices</b>' +
-          '<span>' + escapeHtml(state.loadErrorMsg || "Check your connection and try again.") + '</span>' +
-          '<button id="retryBtn" style="margin-top:10px;background:var(--panel-2);border:1px solid var(--line-strong);color:var(--accent);padding:8px 16px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;">Retry</button>';
-        var rb = document.getElementById("retryBtn");
-        if (rb) rb.addEventListener("click", function(){ refresh(true); });
-      } else {
-        emptyState.innerHTML =
-          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8a7690" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-          '<b>No players found</b><span>Try a different name or clear the filters.</span>';
-      }
+      emptyState.innerHTML = '<b>' + (state.players.length ? 'No players found' : 'Couldn\'t load prices') + '</b><span>' + (state.players.length ? 'Try a different search or filter.' : escapeHtml(state.loadErrorMsg || 'Check your connection and try again.')) + '</span>';
     } else {
       emptyState.style.display = "none";
       var maxOwn = 40;
-      var html = sorted.map(function(p){
-        var total = fmtDelta(p.total);
-        var event = fmtDelta(p.event);
-        var ownPct = Math.min(100, (p.own / maxOwn) * 100);
-        var isFav = state.favs.has(p.id);
-        return (
-          '<tr>' +
-            '<td class="col-player"><div class="player-cell">' +
-              '<button class="fav-btn' + (isFav ? ' active' : '') + '" data-fav-id="' + p.id + '" aria-label="Toggle favourite">' + (isFav ? '★' : '☆') + '</button>' +
-              '<div class="player-text">' +
-                '<span class="player-name">' + escapeHtml(p.name) + '</span>' +
-                '<span class="player-meta"><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span>' + escapeHtml(p.team) + '</span>' +
-              '</div>' +
-            '</div></td>' +
-            '<td class="num price">' + fmtPrice(p.gw1) + '</td>' +
-            '<td class="num price">' + fmtPrice(p.now) + '</td>' +
-            '<td class="num"><span class="delta ' + total.cls + '"><span class="arrow">' + total.arrow + '</span>' + total.text + '</span></td>' +
-            '<td class="num"><span class="delta ' + event.cls + '"><span class="arrow">' + event.arrow + '</span>' + event.text + '</span></td>' +
-            '<td class="num"><div class="own-bar-wrap">' + p.own.toFixed(1) + '%<span class="own-bar"><i style="width:' + ownPct + '%"></i></span></div></td>' +
-          '</tr>'
-        );
-      }).join("");
-      tbody.innerHTML = html;
+      tbody.innerHTML = sorted.map(function(p){
+        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100);
+        var isFav = state.favs.has(p.id), isWatch = state.watchlist.has(p.id), isOwned = state.team && state.team.picks.has(p.id);
+        var mom = p.netTransfers > 0 ? '<span class="momentum up">▲</span>' : p.netTransfers < 0 ? '<span class="momentum down">▼</span>' : '<span class="momentum neutral">•</span>';
+        return '<tr data-player-id="' + p.id + '" class="' + (isOwned ? 'pw-row-owned ' : '') + (isWatch ? 'pw-row-watch' : '') + '">' +
+          '<td class="col-player"><div class="player-cell"><div class="action-buttons">' +
+          '<button class="fav-btn' + (isFav ? ' active' : '') + '" data-fav-id="' + p.id + '" aria-label="Toggle favourite">' + (isFav ? '★' : '☆') + '</button>' +
+          '<button class="watch-btn' + (isWatch ? ' active' : '') + '" data-watch-id="' + p.id + '" aria-label="Toggle watchlist">' + (isWatch ? '◉' : '○') + '</button></div>' +
+          '<div class="player-text"><span class="player-name">' + escapeHtml(p.name) + '</span><span class="player-meta"><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span>' + escapeHtml(p.team) + ' · ' + mom + '</span></div></div></td>' +
+          '<td class="num price">' + fmtPrice(p.gw1) + '</td><td class="num price">' + fmtPrice(p.now) + '</td>' +
+          '<td class="num"><span class="delta ' + total.cls + '"><span class="arrow">' + total.arrow + '</span>' + total.text + '</span></td>' +
+          '<td class="num"><span class="delta ' + event.cls + '"><span class="arrow">' + event.arrow + '</span>' + event.text + '</span></td>' +
+          '<td class="num"><div class="own-bar-wrap">' + p.own.toFixed(1) + '%<span class="own-bar"><i style="width:' + ownPct + '%"></i></span></div></td></tr>';
+      }).join('');
     }
-    countLabel.textContent = sorted.length + (sorted.length === 1 ? " player" : " players") + (state.players.length ? " · updated " + timeAgo(state.lastUpdated) : "");
+    countLabel.textContent = sorted.length + (sorted.length === 1 ? ' player' : ' players') + (state.players.length ? ' · updated ' + timeAgo(state.lastUpdated) : '');
+  }
+
+  function renderDashboard(){
+    var rising=state.players.filter(function(p){return p.total>0}), falling=state.players.filter(function(p){return p.total<0}), biggest=state.players.slice().sort(function(a,b){return Math.abs(b.total)-Math.abs(a.total);})[0];
+    var re=document.getElementById('pwRisingCount'), fe=document.getElementById('pwFallingCount'), bm=document.getElementById('pwBiggestMove'), bh=document.getElementById('pwBiggestMoveHint'), dl=document.getElementById('pwDeadline');
+    if(re)re.textContent=rising.length; if(fe)fe.textContent=falling.length; if(bm)bm.textContent=biggest?fmtDelta(biggest.total).text:'—'; if(bh)bh.textContent=biggest?biggest.name+' · '+biggest.team:'awaiting data';
+    var ev=currentEvent(state.events); if(dl)dl.textContent=ev?formatCountdown(ev.deadline_time):'—';
+    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device. No login is required.';
+    var clear=document.getElementById('pwClearTeam'); if(clear)clear.style.display=state.team?'inline-block':'none';
   }
 
   function escapeHtml(s){
@@ -566,6 +594,8 @@
       var data = await fetchBootstrap(function(attempt, total){
         if (total > 1) setStatus("", "Connecting (source " + attempt + "/" + total + ")…");
       });
+      state.events = data.events || [];
+      state.currentGameweek = currentEvent(state.events);
       var mapped = mapPlayers(data);
       var changed = detectChanges(state.players, mapped);
       state.players = mapped;
@@ -610,7 +640,7 @@
 
   function persistSnapshot(players, at){
     try{
-      var trimmed = players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status]; });
+      var trimmed = players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });
       localStorage.setItem(STORE_KEY_SNAPSHOT, JSON.stringify({ at: at.toISOString(), data: trimmed }));
     }catch(e){}
   }
@@ -621,7 +651,7 @@
       if (!raw) return null;
       var parsed = JSON.parse(raw);
       var players = parsed.data.map(function(a){
-        return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9] };
+        return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };
       });
       return { players: players, at: parsed.at };
     }catch(e){ return null; }
@@ -677,15 +707,38 @@
     render();
   });
 
+  function detailCard(label,value){ return '<div class="pw-detail-card"><span>'+escapeHtml(label)+'</span><b>'+escapeHtml(value)+'</b></div>'; }
+  function toggleFavourite(id){ if(state.favs.has(id))state.favs.delete(id);else state.favs.add(id);saveFavs(state.favs);render(); }
+  function toggleWatchlist(id){ if(state.watchlist.has(id))state.watchlist.delete(id);else state.watchlist.add(id);saveWatchlist(state.watchlist);render(); }
+  async function openPlayer(id){
+    var p=state.players.find(function(x){return x.id===id;}); if(!p)return;
+    var back=document.getElementById('pwModalBackdrop'), title=document.getElementById('pwModalTitle'), sub=document.getElementById('pwModalSub'), body=document.getElementById('pwModalBody');
+    title.textContent=p.name; sub.textContent=(p.teamName||p.team)+' · '+p.team+' · '+p.pos;
+    body.innerHTML='<div class="pw-detail-grid">'+detailCard('Current',fmtPrice(p.now))+detailCard('Season Δ',fmtDelta(p.total).text)+detailCard('Owned',p.own.toFixed(1)+'%')+detailCard('Form',p.form?p.form.toFixed(1):'—')+detailCard('Points',String(p.points))+detailCard('Net transfers',(p.netTransfers>0?'+':'')+p.netTransfers.toLocaleString())+detailCard('xP next',p.epNext?p.epNext.toFixed(1):'—')+detailCard('Value',p.valueScore?p.valueScore.toFixed(2):'—')+'</div><div class="pw-history"><h3>Recent price history</h3><div id="pwHistoryBars" class="pw-history-bars"><div class="pw-history-empty">Loading…</div></div></div><div class="pw-detail-actions"><button class="pw-btn" id="pwModalFav">'+(state.favs.has(p.id)?'★ Favourite':'☆ Favourite')+'</button><button class="pw-btn" id="pwModalWatch">'+(state.watchlist.has(p.id)?'◉ Watching':'○ Watchlist')+'</button></div>';
+    back.classList.add('open'); document.body.style.overflow='hidden';
+    document.getElementById('pwModalFav').addEventListener('click',function(){toggleFavourite(p.id);this.textContent=state.favs.has(p.id)?'★ Favourite':'☆ Favourite';});
+    document.getElementById('pwModalWatch').addEventListener('click',function(){toggleWatchlist(p.id);this.textContent=state.watchlist.has(p.id)?'◉ Watching':'○ Watchlist';});
+    try{ var s=await fetchPublicApi('element-summary/'+p.id+'/'), history=(s.history||[]).slice(-8), bars=document.getElementById('pwHistoryBars'); if(!history.length){bars.innerHTML='<div class="pw-history-empty">No history available yet.</div>';return;} var vals=history.map(function(h){return h.value||p.now;}),min=Math.min.apply(Math,vals),max=Math.max.apply(Math,vals); bars.innerHTML=history.map(function(h){var pct=max===min?55:18+((h.value-min)/(max-min))*72;return '<div class="pw-history-bar" style="height:'+pct+'%" title="GW '+h.round+': '+fmtPrice(h.value)+'"><small>G'+h.round+'</small></div>';}).join(''); }catch(e){var err=document.getElementById('pwHistoryBars');if(err)err.innerHTML='<div class="pw-history-empty">History is unavailable right now.</div>';}
+  }
+  async function loadMyTeam(){
+    var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
+    var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
+    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''}; try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
+  }
+  async function restoreTeam(){try{var id=localStorage.getItem(STORE_KEY_TEAM);if(id){var input=document.getElementById('pwTeamId');if(input)input.value=id;await loadMyTeam();}}catch(e){}}
+
   tbody.addEventListener("click", function(e){
-    var favBtn = e.target.closest(".fav-btn");
-    if (!favBtn) return;
-    var id = parseInt(favBtn.getAttribute("data-fav-id"), 10);
-    if (state.favs.has(id)) state.favs.delete(id);
-    else state.favs.add(id);
-    saveFavs(state.favs);
-    render();
+    var fav=e.target.closest('.fav-btn'); if(fav){toggleFavourite(parseInt(fav.getAttribute('data-fav-id'),10));return;}
+    var watch=e.target.closest('.watch-btn'); if(watch){toggleWatchlist(parseInt(watch.getAttribute('data-watch-id'),10));return;}
+    var row=e.target.closest('tr[data-player-id]'); if(row)openPlayer(parseInt(row.getAttribute('data-player-id'),10));
   });
+
+  ["watchlistOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('click',function(){state[id]=!state[id];el.classList.toggle('active',state[id]);render();});});
+  document.getElementById('pwLoadTeam').addEventListener('click',loadMyTeam);
+  document.getElementById('pwClearTeam').addEventListener('click',function(){state.team=null;try{localStorage.removeItem(STORE_KEY_TEAM);}catch(e){}var input=document.getElementById('pwTeamId');if(input)input.value='';render();showToast('Team cleared');});
+  document.getElementById('pwModalClose').addEventListener('click',function(){document.getElementById('pwModalBackdrop').classList.remove('open');document.body.style.overflow='';});
+  document.getElementById('pwModalBackdrop').addEventListener('click',function(e){if(e.target===this){this.classList.remove('open');document.body.style.overflow='';}});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('pwModalBackdrop');if(m.classList.contains('open')){m.classList.remove('open');document.body.style.overflow='';}}});
 
   refreshBtn.addEventListener("click", function(){ refresh(true); });
 
@@ -708,6 +761,8 @@
 
   refresh(false);
   setInterval(function(){ refresh(false); }, POLL_MS);
+  setInterval(function(){ renderDashboard(); }, 30000);
+  restoreTeam();
 
 })();
 </script>
