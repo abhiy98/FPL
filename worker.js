@@ -98,11 +98,48 @@ async function handleTeam(url) {
   }
 }
 
+async function serveAsset(request, env) {
+  const response = await env.ASSETS.fetch(request);
+  const url = new URL(request.url);
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html") || (url.pathname !== "/" && !url.pathname.endsWith(".html"))) {
+    return response;
+  }
+
+  let html = await response.text();
+
+  const proxyFrom = '    { build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } },';
+  const proxyTo = '    { build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },';
+  html = html.replace(proxyFrom, proxyTo);
+
+  const marker = '  var risersOnly = document.getElementById(\'risersOnly\');';
+  const injected = marker + `
+
+  var myTeamOnlyChip = document.getElementById('myTeamOnly');
+  if (myTeamOnlyChip) {
+    myTeamOnlyChip.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      state.myTeamOnly = !state.myTeamOnly;
+      myTeamOnlyChip.classList.toggle('active', state.myTeamOnly);
+      render();
+    }, true);
+  }`;
+  if (html.includes(marker) && !html.includes("var myTeamOnlyChip")) {
+    html = html.replace(marker, injected);
+  }
+
+  return new Response(html, {
+    status: response.status,
+    headers: response.headers
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/fpl" || url.pathname === "/.netlify/functions/fpl") return handleFpl(url);
     if (url.pathname === "/team") return handleTeam(url);
-    return env.ASSETS.fetch(request);
+    return serveAsset(request, env);
   }
 };
