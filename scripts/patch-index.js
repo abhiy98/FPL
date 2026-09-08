@@ -74,7 +74,7 @@ text = text.replace(/\s*var fav=e\.target\.closest\('\.fav-btn'\); if\(fav\)\{to
 text = text.replace(/<button class="fav-btn' \+ \(isFav \? ' active' : ''\) \+ '" data-fav-id="' \+ p\.id \+ '" aria-label="Toggle favourite">' \+ \(isFav \? '★' : '☆'\) \+ '<\/button>/g, "");
 text = text.replace(/\s*var isFav = state\.favs\.has\(p\.id\), isWatch =/g, " var isWatch =");
 text = text.replace(/\s*<button class="pw-btn" id="pwModalFav">'\+\(state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite'\)\+'<\/button>/g, "");
-text = text.replace(/\s*document\.getElementById\('pwModalFav'\)\.addEventListener\('click',function\(\)\{toggleFavourite\(p\.id\);this\.textContent=state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite';\}\);/g, "");
+text = text.replace(/\s*document\.getElementById\('pwModalFav'\)\.addEventListener\('click',function\(\)\{toggleFavourite\(p\.id\);this\.textContent=state\.favs\.has\(p\.id\)?'★ Favourite':'☆ Favourite';\}\);/g, "");
 
 // Add the price-change countdown directly to the main header.
 replaceIfPresent(
@@ -108,7 +108,7 @@ replaceIfPresent(
 replaceIfPresent(
   "rename gameweek points table header",
   '        <th data-key="gwPoints" class="num"><button class="sort-btn">GW Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
-  '        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
+  '        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="4,8 8,2 0,2"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
 );
 replaceIfPresent(
   "remove gameweek points table cell",
@@ -158,7 +158,7 @@ replaceIfPresent(
 replaceIfPresent(
   "status table sort key",
   '        <th data-key="statusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
-  '        <th data-key="priceStatusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="4,8 8,2 0,2"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
+  '        <th data-key="priceStatusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
 );
 
 replaceIfPresent(
