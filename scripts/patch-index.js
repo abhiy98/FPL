@@ -146,14 +146,9 @@ replaceIfPresent(
 replaceIfPresent(
   "status styles",
   '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}\n</style>',
-  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650}.pw-status-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.pw-status.s100{color:#f4eef6}.pw-status.s100 .pw-status-dot{background:#37003c}.pw-status.s75{color:#ffe65b}.pw-status.s75 .pw-status-dot{background:#ffe65b}.pw-status.s50{color:#ffab1b}.pw-status.s50 .pw-status-dot{background:#ffab1b}.pw-status.s25{color:#d44401}.pw-status.s25 .pw-status-dot{background:#d44401}.pw-status.s0{color:#c0020d}.pw-status.s0 .pw-status-dot{background:#c0020d}.pw-status.sna{color:var(--text-faint)}.pw-status.sna .pw-status-dot{background:var(--flat)}\n</style>'
+  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;line-height:1.3}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}.pw-status.s100{background:#37003c;color:#f4eef6}.pw-status.s100 .pw-status-dot{background:#f4eef6}.pw-status.s75{background:#ffe65b;color:#1c0025}.pw-status.s75 .pw-status-dot{background:#1c0025}.pw-status.s50{background:#ffab1b;color:#1c0025}.pw-status.s50 .pw-status-dot{background:#1c0025}.pw-status.s25{background:#d44401;color:#fff}.pw-status.s25 .pw-status-dot{background:#fff}.pw-status.s0{background:#c0020d;color:#fff}.pw-status.s0 .pw-status-dot{background:#fff}.pw-status.sna{background:var(--panel-2);color:var(--text-faint)}.pw-status.sna .pw-status-dot{background:var(--flat)}\n</style>'
 );
 
-replaceIfPresent(
-  "status table header",
-  '        <th class="col-player" data-key="name">',
-  '        <th class="col-player" data-key="name">'
-);
 replaceIfPresent(
   "status table header insertion",
   '        </th>\n        <th data-key="gw1" class="num">',
