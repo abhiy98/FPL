@@ -1,0 +1,94 @@
+name: Fix My Team loader
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply robust My Team loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('index.html')
+          html=path.read_text(encoding='utf-8')
+
+          html=html.replace('  restoreTeam();\n', '  // My Team restore is handled by the corrected loader below.\n', 1)
+
+          marker='\n})();\n</script>'
+          override=r'''
+
+  async function loadMyTeamFixed(){
+    var input=document.getElementById('pwTeamId');
+    var id=parseInt(input&&input.value?input.value.trim():'',10);
+    if(!id){showToast('Enter a valid FPL Team ID');return;}
+    var button=document.getElementById('pwLoadTeam');
+    if(button){button.disabled=true;button.textContent='Loading…';}
+    try{
+      var entry=await fetchPublicApi('entry/'+id+'/');
+      var gw=entry.current_event || 1;
+      var picksData;
+      try{
+        picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/');
+      }catch(e){
+        if(gw>1) picksData=await fetchPublicApi('entry/'+id+'/event/'+(gw-1)+'/picks/');
+        else throw e;
+      }
+      var picks=new Set((picksData.picks||[]).map(function(x){return x.element;}));
+      if(!picks.size) throw new Error('No picks returned');
+      state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''};
+      try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){}
+      state.myTeamOnly=true;
+      var chip=document.getElementById('myTeamOnly');
+      if(chip)chip.classList.add('active');
+      showToast('My team loaded');
+      render();
+    }catch(e){
+      showToast('Couldn\\'t load that FPL Team ID');
+    }finally{
+      if(button){button.disabled=false;button.textContent='Load my team';}
+    }
+  }
+
+  var fixedTeamButton=document.getElementById('pwLoadTeam');
+  if(fixedTeamButton){
+    fixedTeamButton.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      loadMyTeamFixed();
+    },true);
+  }
+
+  setTimeout(function(){
+    try{
+      var savedTeamId=localStorage.getItem(STORE_KEY_TEAM);
+      var input=document.getElementById('pwTeamId');
+      if(savedTeamId && input){input.value=savedTeamId;loadMyTeamFixed();}
+    }catch(e){}
+  },500);
+'''
+          if marker not in html:
+              raise SystemExit('script end marker not found')
+          html=html.replace(marker,override+marker,1)
+          path.write_text(html,encoding='utf-8')
+          PY
+      - name: Verify
+        run: |
+          grep -q "loadMyTeamFixed" index.html
+          grep -q "stopImmediatePropagation" index.html
+          grep -q "state.myTeamOnly=true" index.html
+      - name: Commit and clean temporary workflows
+        run: |
+          rm -f .github/workflows/pw-fix-team.yml .github/workflows/pw-fix-team2.yml .github/workflows/pw-team-override.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/pw-fix-team.yml .github/workflows/pw-fix-team2.yml .github/workflows/pw-team-override.yml
+          git commit -m "fix: make My Team load and activate filter [pw-team-fix]"
+          git push origin HEAD:main
