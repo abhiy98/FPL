@@ -1,5 +1,4 @@
 const FPL_API = "https://fantasy.premierleague.com/api/";
-const PRICE_DATA_API = "https://livefpl.us/api/prices.json";
 
 const JSON_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -33,14 +32,6 @@ async function handleFpl(url) {
   } catch (error) { return json({ error: String(error) }, 502); }
 }
 
-async function handlePriceData() {
-  try {
-    const response = await fetch(PRICE_DATA_API, { headers: { "User-Agent": "Mozilla/5.0 (compatible; PriceWatch/1.0)", "Accept": "application/json" } });
-    const body = await response.text();
-    return new Response(body, { status: response.status, headers: { ...JSON_HEADERS, "Cache-Control": "public, max-age=60" } });
-  } catch (error) { return json({ error: String(error) }, 502); }
-}
-
 async function handleTeam(url) {
   const id = Number.parseInt(url.searchParams.get("id") || "", 10);
   if (!Number.isInteger(id) || id <= 0) return json({ error: "Invalid FPL team id" }, 400);
@@ -69,12 +60,6 @@ async function serveAsset(request, env) {
   html = html.replace(proxyFrom, proxyTo);
   html = html.replace(/<!-- pricewatch:team-ui-fix -->[\s\S]*?<\/script>/g, "");
 
-  // Always expose the dedicated Price Change screen from the main screen.
-  if (!html.includes('href="/price-changes.html"')) {
-    const searchMarker = '  <div class="search-row">';
-    if (html.includes(searchMarker)) html = html.replace(searchMarker, '  <div style="margin:-2px 0 9px"><a href="/price-changes.html" style="color:var(--accent);text-decoration:none;font-size:12px;font-weight:650">Price Change →</a></div>\n\n' + searchMarker);
-  }
-
   const marker = '  var risersOnly = document.getElementById("risersOnly");';
   const injected = marker + `
 
@@ -97,6 +82,5 @@ export default { async fetch(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/fpl" || url.pathname === "/.netlify/functions/fpl") return handleFpl(url);
   if (url.pathname === "/team") return handleTeam(url);
-  if (url.pathname === "/price-data") return handlePriceData();
   return serveAsset(request, env);
 } };
