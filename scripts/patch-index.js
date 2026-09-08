@@ -99,41 +99,29 @@ const oldTeamNote = "    var note=document.getElementById('pwTeamNote'); if(note
 const newTeamNote = "    var teamValue=state.team?state.players.filter(function(p){return state.team.picks.has(p.id);}).reduce(function(sum,p){return sum+p.now;},0):0; var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(teamValue/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Watchlist and your Team ID are saved locally on this device.';";
 replaceIfPresent("calculated team value", oldTeamNote, newTeamNote);
 
-// Add current/latest gameweek FPL points as a separate player field and table column.
+// Add the FPL season total points to the player data and table.
 replaceIfPresent(
-  "gameweek points field",
-  '        netTransfers: netTransfers, points: el.total_points || 0,',
-  '        netTransfers: netTransfers, points: el.total_points || 0, gwPoints: el.event_points || 0,'
-);
-
-replaceIfPresent(
-  "gameweek points table header",
+  "total points table header",
   '        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
-  '        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>\n        <th data-key="gwPoints" class="num"><button class="sort-btn">GW Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
+  '        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>\n        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
 );
 
 replaceIfPresent(
-  "gameweek points table cell",
+  "total points table cell",
   '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num"><div class="own-bar-wrap">\' + p.own.toFixed(1) + \'%<span class="own-bar"><i style="width:\' + ownPct + \'%"></i></span></div></td></tr>\';',
-  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num">\' + p.gwPoints + \'</td>\' +\n          \'<td class="num"><div class="own-bar-wrap">\' + p.own.toFixed(1) + \'%<span class="own-bar"><i style="width:\' + ownPct + \'%"></i></span></div></td></tr>\';'
+  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num">\' + p.points + \'</td>\' +\n          \'<td class="num"><div class="own-bar-wrap">\' + p.own.toFixed(1) + \'%<span class="own-bar"><i style="width:\' + ownPct + \'%"></i></span></div></td></tr>\';'
 );
 
 replaceIfPresent(
-  "gameweek points modal detail",
-  "detailCard('Points',String(p.points))",
-  "detailCard('GW Points',String(p.gwPoints))+detailCard('Points',String(p.points))"
+  "total points snapshot persistence",
+  'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.gwPoints,p.form,p.epNext,p.minutes]; });',
+  'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });'
 );
 
 replaceIfPresent(
-  "gameweek points snapshot persistence",
-  'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });',
-  'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.gwPoints,p.form,p.epNext,p.minutes]; });'
-);
-
-replaceIfPresent(
-  "gameweek points snapshot restore",
-  'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };',
-  'var hasGwPoints = a.length >= 19; return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:hasGwPoints ? (a[15] || 0) : 0, form:hasGwPoints ? (a[16] || 0) : (a[15] || 0), epNext:hasGwPoints ? (a[17] || 0) : (a[16] || 0), minutes:hasGwPoints ? (a[18] || 0) : (a[17] || 0) };'
+  "total points snapshot restore",
+  'var hasGwPoints = a.length >= 19; return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:hasGwPoints ? (a[15] || 0) : 0, form:hasGwPoints ? (a[16] || 0) : (a[15] || 0), epNext:hasGwPoints ? (a[17] || 0) : (a[16] || 0), minutes:hasGwPoints ? (a[18] || 0) : (a[17] || 0) };',
+  'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };'
 );
 
 fs.writeFileSync(file, text);
