@@ -119,6 +119,12 @@ replaceIfPresent(
 );
 
 replaceIfPresent(
+  "gameweek points modal detail",
+  "detailCard('Points',String(p.points))",
+  "detailCard('GW Points',String(p.gwPoints))+detailCard('Points',String(p.points))"
+);
+
+replaceIfPresent(
   "gameweek points snapshot persistence",
   'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });',
   'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.gwPoints,p.form,p.epNext,p.minutes]; });'
@@ -127,7 +133,7 @@ replaceIfPresent(
 replaceIfPresent(
   "gameweek points snapshot restore",
   'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };',
-  'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:a[15] || 0, form:a[16] || 0, epNext:a[17] || 0, minutes:a[18] || 0 };'
+  'var hasGwPoints = a.length >= 19; return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:hasGwPoints ? (a[15] || 0) : 0, form:hasGwPoints ? (a[16] || 0) : (a[15] || 0), epNext:hasGwPoints ? (a[17] || 0) : (a[16] || 0), minutes:hasGwPoints ? (a[18] || 0) : (a[17] || 0) };'
 );
 
 fs.writeFileSync(file, text);
