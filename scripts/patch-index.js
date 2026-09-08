@@ -10,9 +10,9 @@ function replaceOnce(label, from, to) {
 }
 
 replaceOnce(
-  "Netlify API proxy",
+  "server function proxy",
   '    { build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } },',
-  '    { build: function(u){ return "/.netlify/functions/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },'
+  '    { build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },'
 );
 
 replaceOnce(
@@ -31,27 +31,27 @@ const newTeam = `  async function loadMyTeam(){
     var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
     var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
     try{
-      var r=await fetch('/.netlify/functions/team?id='+encodeURIComponent(id),{cache:'no-store'});
-      var data=await r.json();
-      if(!r.ok || !data.picks || !data.picks.length) throw new Error(data.error || 'No picks returned');
-      state.team={id:id,picks:new Set(data.picks),value:data.value||0,bank:data.bank||0,name:data.name||''};
+      var res=await fetchWithTimeout('/team?id='+encodeURIComponent(id),10000);
+      var data=await res.json();
+      if(!res.ok || !data || !Array.isArray(data.picks) || data.picks.length !== 15) throw new Error(data && data.error ? data.error : 'Expected 15 players');
+      state.team={id:id,picks:new Set(data.picks.map(function(x){return Number(x);})),value:data.value||0,bank:data.bank||0,name:data.name||''};
       try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){}
       state.myTeamOnly=true;
       var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
-      showToast('My team loaded · GW '+(data.gameweek||data.currentGameweek));
+      showToast('My team loaded · GW '+(data.gameweek||data.currentGameweek||'—'));
       render();
-    }catch(e){var note=document.getElementById('pwTeamNote');if(note)note.textContent='Team error: '+e.message;showToast("Couldn't load my team");}
+    }catch(e){var note=document.getElementById('pwTeamNote');if(note)note.textContent='Team error: '+(e&&e.message?e.message:'Unable to load team');showToast('Couldn\\'t load my team');}
     finally{button.disabled=false;button.textContent='Load my team';}
   }`;
 
 replaceOnce("My Team loader", oldTeam, newTeam);
 
-// A final defensive UI layer. This catches the load action in capture phase,
-// uses the dedicated endpoint, and reapplies the team filter after normal table refreshes.
-const teamUi = String.raw`<script>
+// Defensive layer for the team filter: reapply the loaded IDs whenever the
+// normal price refresh rebuilds the table DOM.
+if (text.indexOf("pricewatch:team-ui-fix") === -1) {
+  const teamUi = String.raw`<script>
 (function(){
   var teamIds=null;
-  var teamIdStore='pricewatch:teamId';
   function rows(){return Array.prototype.slice.call(document.querySelectorAll('#tbody tr[data-player-id]'));}
   function apply(){
     if(!teamIds)return;
@@ -59,48 +59,19 @@ const teamUi = String.raw`<script>
     var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
     var count=document.getElementById('countLabel');if(count)count.textContent=teamIds.size+' team players';
   }
-  async function load(){
-    var input=document.getElementById('pwTeamId'),button=document.getElementById('pwLoadTeam');
-    var id=Number.parseInt(input&&input.value?input.value.trim():'',10);
-    if(!Number.isInteger(id)||id<=0){alert('Enter a valid FPL Team ID');return;}
-    if(button){button.disabled=true;button.textContent='Loading…';}
-    try{
-      var res=await fetch('/.netlify/functions/team?id='+encodeURIComponent(id),{cache:'no-store'});
-      var data=await res.json();
-      if(!res.ok||!Array.isArray(data.picks)||data.picks.length!==15)throw new Error(data.error||'Expected 15 players, got '+((data.picks&&data.picks.length)||0));
-      teamIds=new Set(data.picks.map(Number));
-      localStorage.setItem(teamIdStore,String(id));
-      apply();
-      var note=document.getElementById('pwTeamNote');if(note)note.textContent='My team loaded · GW '+(data.gameweek||data.currentGameweek)+' · '+teamIds.size+' players';
-      var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
-    }catch(e){var note=document.getElementById('pwTeamNote');if(note)note.textContent='Team error: '+e.message;}
-    finally{if(button){button.disabled=false;button.textContent='Load my team';}}
-  }
-  document.addEventListener('click',function(e){
-    var b=e.target.closest&&e.target.closest('#pwLoadTeam');
-    if(!b)return;
-    e.preventDefault();e.stopImmediatePropagation();load();
-  },true);
-  document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('#myTeamOnly')){
-      setTimeout(apply,0);
-      if(teamIds){e.preventDefault();e.stopImmediatePropagation();}
-    }
-    if(e.target.closest&&e.target.closest('#pwClearTeam')){
-      teamIds=null;
-      var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.remove('active');
-      rows().forEach(function(row){row.style.display='';});
-    }
-  },true);
+  window.__priceWatchApplyTeam=function(ids){teamIds=new Set(ids.map(Number));apply();};
   var body=document.getElementById('tbody');
-  if(body)new MutationObserver(function(){if(teamIds)apply();}).observe(body,{childList:true});
-  try{var saved=localStorage.getItem(teamIdStore);if(saved){var input=document.getElementById('pwTeamId');if(input)input.value=saved;}}catch(e){}
+  if(body)new MutationObserver(function(){apply();}).observe(body,{childList:true});
 })();
 </script>`;
-
-if (text.indexOf("pricewatch:team-ui-fix") === -1) {
   text = text.replace('</body>', '<!-- pricewatch:team-ui-fix -->' + teamUi + '</body>');
 }
 
+replaceOnce(
+  "expose team IDs",
+  '      state.myTeamOnly=true;\n      var chip=document.getElementById(\'myTeamOnly\');if(chip)chip.classList.add(\'active\');',
+  '      state.myTeamOnly=true;\n      var chip=document.getElementById(\'myTeamOnly\');if(chip)chip.classList.add(\'active\');\n      if(window.__priceWatchApplyTeam)window.__priceWatchApplyTeam(Array.from(state.team.picks));'
+);
+
 fs.writeFileSync(file, text);
-console.log("Patched Price Watch preview build");
+console.log("Patched Price Watch for Cloudflare Pages");
