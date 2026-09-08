@@ -44,7 +44,11 @@ const newTeam = `  async function loadMyTeam(){
     finally{button.disabled=false;button.textContent='Load my team';}
   }`;
 
-replaceOnce("My Team loader", oldTeam, newTeam);
+if (text.includes(oldTeam)) {
+  text = text.replace(oldTeam, newTeam);
+} else if (!text.includes("fetchWithTimeout('/team?id=")) {
+  throw new Error("Price Watch build patch failed: My Team loader not recognized");
+}
 
 // Do not inject a second DOM-level team filter here. The application state
 // (`state.myTeamOnly`) and render() are the single source of truth.
