@@ -105,78 +105,72 @@ replaceIfPresent(
   '        netTransfers: netTransfers, points: el.total_points || 0, gwPoints: el.event_points || 0,',
   '        netTransfers: netTransfers, points: el.total_points || 0,'
 );
-
 replaceIfPresent(
   "rename gameweek points table header",
   '        <th data-key="gwPoints" class="num"><button class="sort-btn">GW Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
   '        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
 );
-
 replaceIfPresent(
   "remove gameweek points table cell",
   '          \'<td class="num">\' + p.gwPoints + \'</td>\' +\n',
   ''
 );
-
 replaceIfPresent(
   "remove gameweek points modal detail",
   "detailCard('GW Points',String(p.gwPoints))+detailCard('Points',String(p.points))",
   "detailCard('Points',String(p.points))"
 );
-
 replaceIfPresent(
   "restore points table cell",
   '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num"><div class="own-bar-wrap">',
   '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num">\' + p.points + \'</td>\' +\n          \'<td class="num"><div class="own-bar-wrap">'
 );
-
 replaceIfPresent(
   "remove gameweek points snapshot persistence",
   'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.gwPoints,p.form,p.epNext,p.minutes]; });',
   'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });'
 );
-
 replaceIfPresent(
   "remove gameweek points snapshot restore",
   'var hasGwPoints = a.length >= 19; return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:hasGwPoints ? (a[15] || 0) : 0, form:hasGwPoints ? (a[16] || 0) : (a[15] || 0), epNext:hasGwPoints ? (a[17] || 0) : (a[16] || 0), minutes:hasGwPoints ? (a[18] || 0) : (a[17] || 0) };',
   'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };'
 );
 
-// Add FPL-style player availability status with colour coding.
+// Price Change status uses FPL's official projected progress where available.
 replaceIfPresent(
-  "status styles",
-  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}\n</style>',
-  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;line-height:1.3}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}.pw-status.s100{background:#37003c;color:#f4eef6}.pw-status.s100 .pw-status-dot{background:#f4eef6}.pw-status.s75{background:#ffe65b;color:#1c0025}.pw-status.s75 .pw-status-dot{background:#1c0025}.pw-status.s50{background:#ffab1b;color:#1c0025}.pw-status.s50 .pw-status-dot{background:#1c0025}.pw-status.s25{background:#d44401;color:#fff}.pw-status.s25 .pw-status-dot{background:#fff}.pw-status.s0{background:#c0020d;color:#fff}.pw-status.s0 .pw-status-dot{background:#fff}.pw-status.sna{background:var(--panel-2);color:var(--text-faint)}.pw-status.sna .pw-status-dot{background:var(--flat)}\n</style>'
+  "remove availability status styles",
+  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650}.pw-status-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.pw-status.s100{color:#f4eef6}.pw-status.s100 .pw-status-dot{background:#37003c}.pw-status.s75{color:#ffe65b}.pw-status.s75 .pw-status-dot{background:#ffe65b}.pw-status.s50{color:#ffab1b}.pw-status.s50 .pw-status-dot{background:#ffab1b}.pw-status.s25{color:#d44401}.pw-status.s25 .pw-status-dot{background:#d44401}.pw-status.s0{color:#c0020d}.pw-status.s0 .pw-status-dot{background:#c0020d}.pw-status.sna{color:var(--text-faint)}.pw-status.sna .pw-status-dot{background:var(--flat)}\n</style>',
+  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.rise .pw-status-dot{background:#00ff85}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.drop .pw-status-dot{background:#ff3b5c}.pw-status.neutral{color:var(--text-dim);background:rgba(255,255,255,.06)}.pw-status.neutral .pw-status-dot{background:var(--flat)}\n</style>'
 );
 
 replaceIfPresent(
-  "status table header insertion",
-  '        </th>\n        <th data-key="gw1" class="num">',
-  '        </th>\n        <th data-key="statusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>\n        <th data-key="gw1" class="num">'
+  "remove availability status field",
+  '        netTransfers: netTransfers, points: el.total_points || 0, statusChance: el.chance_of_playing_next_round == null ? null : Number(el.chance_of_playing_next_round), statusRank: el.chance_of_playing_next_round == null ? 100 : Number(el.chance_of_playing_next_round),',
+  '        netTransfers: netTransfers, points: el.total_points || 0, priceChangePercent: el.price_change_percent == null ? null : Number(el.price_change_percent), priceChangeProjected: Array.isArray(el.price_change_projections) && el.price_change_projections.length ? Number(el.price_change_projections[0].projected_percent) : null, priceStatusRank: el.price_change_percent == null ? 0 : Math.abs(Number(el.price_change_percent)),'
 );
 
 replaceIfPresent(
-  "status player field",
-  '        netTransfers: netTransfers, points: el.total_points || 0,',
-  '        netTransfers: netTransfers, points: el.total_points || 0, statusChance: el.chance_of_playing_next_round == null ? null : Number(el.chance_of_playing_next_round), statusRank: el.chance_of_playing_next_round == null ? 100 : Number(el.chance_of_playing_next_round),'
+  "remove availability status renderer",
+  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100); var statusChance = p.statusChance == null ? null : p.statusChance; var statusText = p.status === "i" ? "Injured" : p.status === "d" ? "Doubtful" : p.status === "s" ? "Suspended" : p.status === "n" ? "Not in squad" : p.status === "u" ? "Unavailable" : "Available"; var statusLevel = statusChance == null ? "na" : String(statusChance); var statusHtml = \'<span class="pw-status s\' + statusLevel + \'"><span class="pw-status-dot"></span>\' + escapeHtml(statusText) + \'</span>\';',
+  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100); var predictor = p.priceChangeProjected != null ? p.priceChangeProjected : p.priceChangePercent; var statusText = predictor == null ? "—" : predictor <= -100 ? "Very Likely to Drop" : predictor <= -80 ? "Likely to Drop" : predictor >= 100 ? "Very Likely to Rise" : predictor >= 80 ? "Likely to Rise" : "Unlikely to Change"; var statusClass = predictor == null ? "neutral" : predictor < -0.01 ? "drop" : predictor > 0.01 ? "rise" : "neutral"; var statusHtml = \'<span class="pw-status \' + statusClass + \'"><span class="pw-status-dot"></span>\' + escapeHtml(statusText) + \'</span>\';'
 );
 
 replaceIfPresent(
-  "status renderer setup",
-  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100);',
-  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100); var statusChance = p.statusChance == null ? null : p.statusChance; var statusText = p.status === "i" ? "Injured" : p.status === "d" ? "Doubtful" : p.status === "s" ? "Suspended" : p.status === "n" ? "Not in squad" : p.status === "u" ? "Unavailable" : "Available"; var statusLevel = statusChance == null ? "na" : String(statusChance); var statusHtml = \'<span class="pw-status s\' + statusLevel + \'"><span class="pw-status-dot"></span>\' + escapeHtml(statusText) + \'</span>\';'
+  "status table sort key",
+  '        <th data-key="statusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
+  '        <th data-key="priceStatusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="4,8 8,2 0,2"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
 );
 
 replaceIfPresent(
   "status table cell",
-  '          \'<td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +',
+  '          \'<td class="num">\' + statusHtml + \'</td><td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +',
   '          \'<td class="num">\' + statusHtml + \'</td><td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +'
 );
 
 replaceIfPresent(
   "status modal detail",
-  "detailCard('Points',String(p.points))",
-  "detailCard('Status',p.statusChance == null ? 'Available' : ((p.statusChance || 0) + '%')+' · '+(p.status === 'i' ? 'Injured' : p.status === 'd' ? 'Doubtful' : p.status === 's' ? 'Suspended' : p.status === 'n' ? 'Not in squad' : p.status === 'u' ? 'Unavailable' : 'Available'))+detailCard('Points',String(p.points))"
+  "detailCard('Status',p.statusChance == null ? 'Available' : ((p.statusChance || 0) + '%')+' · '+(p.status === 'i' ? 'Injured' : p.status === 'd' ? 'Doubtful' : p.status === 's' ? 'Suspended' : p.status === 'n' ? 'Not in squad' : p.status === 'u' ? 'Unavailable' : 'Available'))+detailCard('Points',String(p.points))",
+  "detailCard('Price Change',p.priceChangeProjected == null ? '—' : (p.priceChangeProjected >= 0 ? '+' : '')+p.priceChangeProjected.toFixed(1)+'% · '+(p.priceChangeProjected <= -100 ? 'Very Likely to Drop' : p.priceChangeProjected <= -80 ? 'Likely to Drop' : p.priceChangeProjected >= 100 ? 'Very Likely to Rise' : p.priceChangeProjected >= 80 ? 'Likely to Rise' : 'Unlikely to Change'))+detailCard('Points',String(p.points))"
 );
 
 fs.writeFileSync(file, text);
