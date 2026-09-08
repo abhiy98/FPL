@@ -23,14 +23,13 @@ replaceOnce(
   '        if (!data || !data.elements || data.elements.length < 300) throw new Error("Incomplete player payload");'
 );
 
-replaceOnce(
-  "My Team loader",
-  '''  async function loadMyTeam(){
+const oldTeam = `  async function loadMyTeam(){
     var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
     var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
     try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''}; try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
-  }''',
-  '''  async function loadMyTeam(){
+  }`;
+
+const newTeam = `  async function loadMyTeam(){
     var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
     var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
     try{
@@ -52,8 +51,9 @@ replaceOnce(
       render();
     }catch(e){showToast("Couldn't load that FPL Team ID");}
     finally{button.disabled=false;button.textContent='Load my team';}
-  }'''
-);
+  }`;
+
+replaceOnce("My Team loader", oldTeam, newTeam);
 
 fs.writeFileSync(file, text);
 console.log("Patched index.html for Netlify preview build");
