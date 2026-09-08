@@ -76,11 +76,25 @@ text = text.replace(/\s*var isFav = state\.favs\.has\(p\.id\), isWatch =/g, " va
 text = text.replace(/\s*<button class="pw-btn" id="pwModalFav">'\+\(state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite'\)\+'<\/button>/g, "");
 text = text.replace(/\s*document\.getElementById\('pwModalFav'\)\.addEventListener\('click',function\(\)\{toggleFavourite\(p\.id\);this\.textContent=state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite';\}\);/g, "");
 
+// Add a permanent Price Change entry point to the static HTML.
+replaceIfPresent(
+  "Price Change navigation",
+  '  <div class="search-row">',
+  '  <div class="pw-page-nav"><a href="/price-changes.html">Price Change</a></div>\n\n  <div class="search-row">'
+);
+
 // The displayed Team value should be the sum of the current prices of the 15
 // players actually loaded into the team, rather than entry.last_deadline_value.
 const oldTeamNote = "    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device.';";
 const newTeamNote = "    var teamValue=state.team?state.players.filter(function(p){return state.team.picks.has(p.id);}).reduce(function(sum,p){return sum+p.now;},0):0; var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(teamValue/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Watchlist and your Team ID are saved locally on this device.';";
 replaceIfPresent("calculated team value", oldTeamNote, newTeamNote);
+
+// Add styling for the static navigation link.
+replaceIfPresent(
+  "Price Change navigation styles",
+  '</style>',
+  '.pw-page-nav{margin:-2px 0 9px}.pw-page-nav a{display:inline-block;color:var(--accent);text-decoration:none;font-size:12px;font-weight:650;padding:6px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel)}.pw-page-nav a:active{opacity:.7}\n</style>'
+);
 
 fs.writeFileSync(file, text);
 console.log("Price Watch build patch complete");
