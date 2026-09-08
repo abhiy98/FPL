@@ -112,6 +112,23 @@ async function serveAsset(request, env) {
   const proxyTo = '    { build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },';
   html = html.replace(proxyFrom, proxyTo);
 
+  const teamObserverFrom = `  function apply(){
+    if(!teamIds)return;
+    rows().forEach(function(row){row.style.display=teamIds.has(Number(row.getAttribute('data-player-id'))) ? '' : 'none';});
+    var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
+    var count=document.getElementById('countLabel');if(count)count.textContent=teamIds.size+' team players';
+  }`;
+  const teamObserverTo = `  function apply(){
+    var chip=document.getElementById('myTeamOnly');
+    if(!teamIds || !chip || !chip.classList.contains('active')){
+      rows().forEach(function(row){row.style.display='';});
+      return;
+    }
+    rows().forEach(function(row){row.style.display=teamIds.has(Number(row.getAttribute('data-player-id'))) ? '' : 'none';});
+    var count=document.getElementById('countLabel');if(count)count.textContent=teamIds.size+' team players';
+  }`;
+  html = html.replace(teamObserverFrom, teamObserverTo);
+
   const marker = '  var risersOnly = document.getElementById(\'risersOnly\');';
   const injected = marker + `
 
