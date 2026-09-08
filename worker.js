@@ -138,10 +138,10 @@ async function serveAsset(request, env) {
     return { text:'Unlikely to Rise', cls:'neutral', rank:3 };
   }
 
-  function pwStatusCell(player){
+  function statusMarkup(player){
     var s = pwStatusFor(player);
     player.priceStatusRank = s.rank;
-    return '<td class="num"><span class="pw-status '+s.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(s.text)+'</span></td>';
+    return '<span class="pw-status '+s.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(s.text)+'</span>';
   }
 
   function sortIconHtml(){
@@ -162,54 +162,58 @@ async function serveAsset(request, env) {
     if(!table || !headerRow || !body) return;
 
     var oldHeaders=Array.prototype.slice.call(headerRow.children);
-    var byKey={};
-    oldHeaders.forEach(function(th){
+    var indexByKey={};
+    oldHeaders.forEach(function(th,index){
       var key=th.getAttribute('data-key');
       var label=th.textContent.trim();
-      if(key==='name' || /^player$/i.test(label)) byKey.name=th;
-      else if(key==='status' || key==='priceStatusRank' || /^status$/i.test(label)) byKey.status=th;
-      else if(key==='gw1' || /GW1 price/i.test(label)) byKey.gw1=th;
-      else if(key==='now' || /^current$/i.test(label)) byKey.now=th;
-      else if(key==='total' || /Total Δ/i.test(label)) byKey.total=th;
-      else if(key==='event' || /This GW/i.test(label)) byKey.event=th;
-      else if(key==='points' || /Total Points/i.test(label)) byKey.points=th;
-      else if(key==='own' || /^owned$/i.test(label)) byKey.own=th;
+      if(key==='name' || /^player$/i.test(label)) indexByKey.name=index;
+      else if(key==='status' || key==='priceStatusRank' || /^status$/i.test(label)) indexByKey.status=index;
+      else if(key==='gw1' || /GW1 price/i.test(label)) indexByKey.gw1=index;
+      else if(key==='now' || /^current$/i.test(label)) indexByKey.now=index;
+      else if(key==='total' || /Total Δ/i.test(label)) indexByKey.total=index;
+      else if(key==='event' || /This GW/i.test(label)) indexByKey.event=index;
+      else if(key==='points' || /Total Points/i.test(label)) indexByKey.points=index;
+      else if(key==='own' || /^owned$/i.test(label)) indexByKey.own=index;
     });
 
+    function header(label,key,isName){
+      var th=document.createElement('th');
+      return setHeader(th,key,label,isName);
+    }
+
     var orderedHeaders=[
-      setHeader(byKey.name || document.createElement('th'),'name','Player',true),
-      setHeader(byKey.status || document.createElement('th'),'priceStatusRank','Status',false),
-      setHeader(byKey.gw1 || document.createElement('th'),'gw1','GW1 price',false),
-      setHeader(byKey.now || document.createElement('th'),'now','Current',false),
-      setHeader(byKey.total || document.createElement('th'),'total','Total Δ',false),
-      setHeader(byKey.event || document.createElement('th'),'event','This GW',false),
-      setHeader(byKey.points || document.createElement('th'),'points','Total Points',false),
-      setHeader(byKey.own || document.createElement('th'),'own','Owned',false)
+      header('Player','name',true),
+      header('Status','priceStatusRank',false),
+      header('GW1 price','gw1',false),
+      header('Current','now',false),
+      header('Total Δ','total',false),
+      header('This GW','event',false),
+      header('Total Points','points',false),
+      header('Owned','own',false)
     ];
-    if (orderedHeaders.some(function(th){return !th.parentNode || th.parentNode!==headerRow;})) {}
-    headerRow.replaceChildren.apply(headerRow, orderedHeaders);
+    headerRow.replaceChildren.apply(headerRow,orderedHeaders);
 
     Array.prototype.slice.call(body.querySelectorAll('tr[data-player-id]')).forEach(function(row){
       var cells=Array.prototype.slice.call(row.children);
-      if(cells.length<6) return;
-      var map={};
-      map.name=cells.find(function(td){return td.classList.contains('col-player');}) || cells[0];
-      var statusExisting=cells.find(function(td){return td.querySelector('.pw-status');});
-      var numeric=cells.filter(function(td){return td!==map.name && td!==statusExisting;});
-      map.gw1=numeric[0]; map.now=numeric[1]; map.total=numeric[2]; map.event=numeric[3];
-      var pointsExisting=numeric.find(function(td){return /^\\d+$/.test(td.textContent.trim());});
-      map.own=numeric[numeric.length-1];
-      if(pointsExisting && pointsExisting!==map.own) map.points=pointsExisting;
-      var playerId=Number(row.getAttribute('data-player-id'));
-      var player=state.players.find(function(p){return Number(p.id)===playerId;});
+      var id=Number(row.getAttribute('data-player-id'));
+      var player=state.players.find(function(p){return Number(p.id)===id;});
       if(!player) return;
-      var statusCell=statusExisting || document.createElement('td');
-      var pointsCell=map.points || document.createElement('td');
+
+      var cell=function(key){
+        var index=indexByKey[key];
+        return Number.isInteger(index) ? (cells[index] || null) : null;
+      };
+      var nameCell=cell('name') || cells[0];
+      var statusCell=document.createElement('td');
+      var pointsCell=cell('points') || document.createElement('td');
+      var gw1Cell=cell('gw1'), nowCell=cell('now'), totalCell=cell('total'), eventCell=cell('event'), ownCell=cell('own');
+      if(!nameCell || !gw1Cell || !nowCell || !totalCell || !eventCell || !ownCell) return;
+
       statusCell.className='num';
-      statusCell.innerHTML=pwStatusCell(player).replace(/^<td class="num">|<\\/td>$/g,'');
+      statusCell.innerHTML=statusMarkup(player);
       pointsCell.className='num';
       pointsCell.textContent=String(player.points || 0);
-      row.replaceChildren(map.name,statusCell,map.gw1,map.now,map.total,map.event,pointsCell,map.own);
+      row.replaceChildren(nameCell,statusCell,gw1Cell,nowCell,totalCell,eventCell,pointsCell,ownCell);
     });
 
     if(!headerRow.__pwSortBound){
@@ -220,7 +224,7 @@ async function serveAsset(request, env) {
         if(!th) return;
         var key=th.getAttribute('data-key');
         if(state.sortKey===key) state.sortDir=state.sortDir==='asc'?'desc':'asc';
-        else { state.sortKey=key; state.sortDir='desc'; }
+        else { state.sortKey=key; state.sortDir=key==='name'?'asc':'desc'; }
         render();
       });
     }
