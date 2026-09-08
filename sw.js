@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v2";
+var CACHE = "pricewatch-v3";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
@@ -20,15 +20,15 @@ function isExternalData(url){
     url.indexOf("corsproxy.io") !== -1 ||
     url.indexOf("allorigins.win") !== -1 ||
     url.indexOf("codetabs.com") !== -1 ||
-    url.indexOf("/.netlify/functions/") !== -1;
+    url.indexOf("/.netlify/functions/") !== -1 ||
+    /\/fpl(?:\?|$)/.test(url) ||
+    /\/team(?:\?|$)/.test(url);
 }
 
 self.addEventListener("fetch", function(e){
   var url = e.request.url;
   if (isExternalData(url)) return;
 
-  // Navigations and index.html: always try the network first, so a new
-  // deploy shows up immediately. Cache is only a fallback for offline use.
   var isPageRequest = e.request.mode === "navigate" || url.indexOf("index.html") !== -1 || url.endsWith("/");
   if (isPageRequest){
     e.respondWith(
@@ -45,7 +45,6 @@ self.addEventListener("fetch", function(e){
     return;
   }
 
-  // Static assets (icons, manifest): cache-first is fine, they rarely change.
   e.respondWith(
     caches.match(e.request).then(function(cached){
       return cached || fetch(e.request).then(function(res){
