@@ -3,20 +3,20 @@
 ## What's in the folder
 - `index.html` — the app (frozen player column, sortable/searchable table, live refresh)
 - `manifest.json` + `sw.js` — makes it installable as a PWA (add-to-home-screen, offline app shell)
-- `icon-192.png` / `icon-512.png` — app icons
-- `functions/fpl.js` + `functions/team.js` — Cloudflare Pages Functions that fetch FPL data server-side
+- `worker.js` — Cloudflare Worker that serves the site and proxies FPL API requests
+- `wrangler.jsonc` — Cloudflare Worker + static assets configuration
+- `functions/` — legacy Cloudflare Pages Functions kept for reference while the Worker deployment is tested
 
-## Deploying with Cloudflare Pages
+## Deploying with Cloudflare Workers Builds
 
-Cloudflare Pages is the primary deployment target. Connect the GitHub repository and set the production branch to `main`. Cloudflare automatically creates preview deployments for other branches and pull requests.
+Cloudflare Workers is the primary deployment target. Connect the GitHub repository and set the production branch to `main`. Workers Builds can deploy pushes automatically and create non-production preview versions for other branches.
 
 Build settings:
-- Framework preset: None
-- Production branch: `main`
 - Build command: `node scripts/patch-index.js`
-- Build output directory: `.`
+- Production deploy command: `npx wrangler deploy`
+- Non-production deploy command: `npx wrangler versions upload`
 
-The `functions/` directory is at the repository root because Cloudflare Pages Functions use file-based routing from that directory. `functions/fpl.js` serves `/fpl`; `functions/team.js` serves `/team`.
+`wrangler.jsonc` configures `worker.js` as the Worker entry point and the repository root as the static asset directory. The Worker handles `/fpl` and `/team`, then serves the static site through the `ASSETS` binding.
 
 For testing, push a feature branch such as `Changes` and use its Cloudflare preview deployment. Merging into `main` deploys production.
 
