@@ -116,7 +116,10 @@ async function serveAsset(request, env) {
   // hidden list of team IDs and could override the real application state.
   html = html.replace(/<!-- pricewatch:team-ui-fix -->[\s\S]*?<\/script>/g, "");
 
-  const marker = '  var risersOnly = document.getElementById(\'risersOnly\');';
+  // The source HTML uses double quotes for this variable declaration.
+  // Inject the authoritative handlers inside the app's closure so they can
+  // update the real state object used by applyFilters() and render().
+  const marker = '  var risersOnly = document.getElementById("risersOnly");';
   const injected = marker + `
 
   var myTeamOnlyChip = document.getElementById('myTeamOnly');
