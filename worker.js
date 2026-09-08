@@ -73,8 +73,73 @@ async function serveAsset(request, env) {
   if (clearTeamButton && !clearTeamButton.__pwBound) {
     clearTeamButton.__pwBound = true;
     clearTeamButton.addEventListener('click', function(e){ e.preventDefault(); e.stopImmediatePropagation(); state.team = null; state.myTeamOnly = false; clearTeamButton.style.display = 'none'; if (myTeamOnlyChip) myTeamOnlyChip.classList.remove('active'); try { localStorage.removeItem(STORE_KEY_TEAM); } catch (_) {} var input = document.getElementById('pwTeamId'); if (input) input.value = ''; render(); showToast('Team cleared'); }, true);
+  }
+
+  var pwStatusStyle = document.createElement('style');
+  pwStatusStyle.textContent = '.pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.rise .pw-status-dot{background:#00ff85}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.drop .pw-status-dot{background:#ff3b5c}.pw-status.neutral{color:var(--text-dim);background:rgba(255,255,255,.06)}.pw-status.neutral .pw-status-dot{background:var(--flat)}';
+  document.head.appendChild(pwStatusStyle);
+
+  function pwPriceStatus(player){
+    var projected = Number(player.priceChangeProjected != null ? player.priceChangeProjected : player.priceChangePercent);
+    if (!Number.isFinite(projected)) return { text:'Unlikely to Change', cls:'neutral', rank:0 };
+    if (projected <= -100) return { text:'Very Likely to Drop', cls:'drop', rank:500 };
+    if (projected <= -95) return { text:'Likely to Drop', cls:'drop', rank:400 };
+    if (projected >= 100) return { text:'Very Likely to Rise', cls:'rise', rank:500 };
+    if (projected >= 95) return { text:'Likely to Rise', cls:'rise', rank:400 };
+    return { text:'Unlikely to Change', cls:'neutral', rank:100 };
+  }
+
+  function pwStatusHtml(player){
+    var status = pwPriceStatus(player);
+    player.priceStatusRank = status.rank;
+    return '<span class="pw-status '+status.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(status.text)+'</span>';
+  }
+
+  function normalizePriceStatusColumn(){
+    var headerRow=document.querySelector('thead tr');
+    var body=document.getElementById('tbody');
+    if(!headerRow || !body || !window.state) return;
+    var headers=Array.prototype.slice.call(headerRow.children);
+    var statusTh=headers.find(function(th){return /^(status|price change)$/i.test(th.textContent.trim());});
+    if(!statusTh){
+      statusTh=document.createElement('th');
+      statusTh.className='num';
+      statusTh.setAttribute('data-key','priceStatusRank');
+      statusTh.innerHTML='<button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button>';
+      headerRow.insertBefore(statusTh,headerRow.children[1]||null);
+    } else {
+      statusTh.setAttribute('data-key','priceStatusRank');
+      if(headerRow.children[1]!==statusTh) headerRow.insertBefore(statusTh,headerRow.children[1]||null);
+    }
+    var index=Array.prototype.indexOf.call(headerRow.children,statusTh);
+    Array.prototype.forEach.call(body.querySelectorAll('tr[data-player-id]'),function(row){
+      var id=Number(row.getAttribute('data-player-id'));
+      var player=state.players.find(function(p){return Number(p.id)===id;});
+      if(!player) return;
+      var statusCell=row.querySelector('.pw-status') && row.querySelector('.pw-status').parentElement;
+      if(statusCell && row.children[index]!==statusCell) row.insertBefore(statusCell,row.children[index]||null);
+      if(!statusCell){
+        statusCell=document.createElement('td');
+        statusCell.className='num';
+        row.insertBefore(statusCell,row.children[index]||null);
+      }
+      statusCell.className='num';
+      statusCell.innerHTML=pwStatusHtml(player);
+    });
+  }
+
+  if (!window.__pwStatusColumnBound) {
+    window.__pwStatusColumnBound = true;
+    normalizePriceStatusColumn();
+    var pwStatusObserver = new MutationObserver(function(){ normalizePriceStatusColumn(); });
+    var pwTbody=document.getElementById('tbody');
+    if(pwTbody) pwStatusObserver.observe(pwTbody,{childList:true});
+    document.addEventListener('click',function(e){
+      var th=e.target.closest('th[data-key="priceStatusRank"]');
+      if(th){ setTimeout(normalizePriceStatusColumn,0); }
+    },true);
   }`;
-  if (html.includes(marker) && !html.includes("myTeamOnlyChip.__pwBound")) html = html.replace(marker, injected);
+  if (html.includes(marker) && !html.includes("window.__pwStatusColumnBound")) html = html.replace(marker, injected);
   return new Response(html, { status: response.status, headers: response.headers });
 }
 
