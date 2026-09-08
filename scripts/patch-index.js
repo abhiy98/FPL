@@ -99,29 +99,89 @@ const oldTeamNote = "    var note=document.getElementById('pwTeamNote'); if(note
 const newTeamNote = "    var teamValue=state.team?state.players.filter(function(p){return state.team.picks.has(p.id);}).reduce(function(sum,p){return sum+p.now;},0):0; var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(teamValue/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Watchlist and your Team ID are saved locally on this device.';";
 replaceIfPresent("calculated team value", oldTeamNote, newTeamNote);
 
-// Add the FPL season total points to the player data and table.
+// Keep season total FPL points as the player points field and table column.
 replaceIfPresent(
-  "total points table header",
-  '        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
-  '        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>\n        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
+  "remove gameweek points field",
+  '        netTransfers: netTransfers, points: el.total_points || 0, gwPoints: el.event_points || 0,',
+  '        netTransfers: netTransfers, points: el.total_points || 0,'
 );
 
 replaceIfPresent(
-  "total points table cell",
-  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num"><div class="own-bar-wrap">\' + p.own.toFixed(1) + \'%<span class="own-bar"><i style="width:\' + ownPct + \'%"></i></span></div></td></tr>\';',
-  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num">\' + p.points + \'</td>\' +\n          \'<td class="num"><div class="own-bar-wrap">\' + p.own.toFixed(1) + \'%<span class="own-bar"><i style="width:\' + ownPct + \'%"></i></span></div></td></tr>\';'
+  "rename gameweek points table header",
+  '        <th data-key="gwPoints" class="num"><button class="sort-btn">GW Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
+  '        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
 );
 
 replaceIfPresent(
-  "total points snapshot persistence",
+  "remove gameweek points table cell",
+  '          \'<td class="num">\' + p.gwPoints + \'</td>\' +\n',
+  ''
+);
+
+replaceIfPresent(
+  "remove gameweek points modal detail",
+  "detailCard('GW Points',String(p.gwPoints))+detailCard('Points',String(p.points))",
+  "detailCard('Points',String(p.points))"
+);
+
+replaceIfPresent(
+  "restore points table cell",
+  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num"><div class="own-bar-wrap">',
+  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num">\' + p.points + \'</td>\' +\n          \'<td class="num"><div class="own-bar-wrap">'
+);
+
+replaceIfPresent(
+  "remove gameweek points snapshot persistence",
   'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.gwPoints,p.form,p.epNext,p.minutes]; });',
   'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });'
 );
 
 replaceIfPresent(
-  "total points snapshot restore",
+  "remove gameweek points snapshot restore",
   'var hasGwPoints = a.length >= 19; return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:hasGwPoints ? (a[15] || 0) : 0, form:hasGwPoints ? (a[16] || 0) : (a[15] || 0), epNext:hasGwPoints ? (a[17] || 0) : (a[16] || 0), minutes:hasGwPoints ? (a[18] || 0) : (a[17] || 0) };',
   'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };'
+);
+
+// Add FPL-style player availability status with colour coding.
+replaceIfPresent(
+  "status styles",
+  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}\n</style>',
+  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650}.pw-status-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.pw-status.s100{color:#f4eef6}.pw-status.s100 .pw-status-dot{background:#37003c}.pw-status.s75{color:#ffe65b}.pw-status.s75 .pw-status-dot{background:#ffe65b}.pw-status.s50{color:#ffab1b}.pw-status.s50 .pw-status-dot{background:#ffab1b}.pw-status.s25{color:#d44401}.pw-status.s25 .pw-status-dot{background:#d44401}.pw-status.s0{color:#c0020d}.pw-status.s0 .pw-status-dot{background:#c0020d}.pw-status.sna{color:var(--text-faint)}.pw-status.sna .pw-status-dot{background:var(--flat)}\n</style>'
+);
+
+replaceIfPresent(
+  "status table header",
+  '        <th class="col-player" data-key="name">',
+  '        <th class="col-player" data-key="name">'
+);
+replaceIfPresent(
+  "status table header insertion",
+  '        </th>\n        <th data-key="gw1" class="num">',
+  '        </th>\n        <th data-key="statusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>\n        <th data-key="gw1" class="num">'
+);
+
+replaceIfPresent(
+  "status player field",
+  '        netTransfers: netTransfers, points: el.total_points || 0,',
+  '        netTransfers: netTransfers, points: el.total_points || 0, statusChance: el.chance_of_playing_next_round == null ? null : Number(el.chance_of_playing_next_round), statusRank: el.chance_of_playing_next_round == null ? 100 : Number(el.chance_of_playing_next_round),'
+);
+
+replaceIfPresent(
+  "status renderer setup",
+  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100);',
+  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100); var statusChance = p.statusChance == null ? null : p.statusChance; var statusText = p.status === "i" ? "Injured" : p.status === "d" ? "Doubtful" : p.status === "s" ? "Suspended" : p.status === "n" ? "Not in squad" : p.status === "u" ? "Unavailable" : "Available"; var statusLevel = statusChance == null ? "na" : String(statusChance); var statusHtml = \'<span class="pw-status s\' + statusLevel + \'"><span class="pw-status-dot"></span>\' + escapeHtml(statusText) + \'</span>\';'
+);
+
+replaceIfPresent(
+  "status table cell",
+  '          \'<td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +',
+  '          \'<td class="num">\' + statusHtml + \'</td><td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +'
+);
+
+replaceIfPresent(
+  "status modal detail",
+  "detailCard('Points',String(p.points))",
+  "detailCard('Status',p.statusChance == null ? 'Available' : ((p.statusChance || 0) + '%')+' · '+(p.status === 'i' ? 'Injured' : p.status === 'd' ? 'Doubtful' : p.status === 's' ? 'Suspended' : p.status === 'n' ? 'Not in squad' : p.status === 'u' ? 'Unavailable' : 'Available'))+detailCard('Points',String(p.points))"
 );
 
 fs.writeFileSync(file, text);
