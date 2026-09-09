@@ -49,19 +49,19 @@ async function handleFpl(url) {
   }
 }
 
-function firstFinite(...values) {
-  for (const value of values) {
-    const number = Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-  return null;
-}
-
-function normaliseValue(value) {
+function normalisePercent(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
-  // LiveFPL-style values are fractions (1.04); some feeds expose percentages (104).
   return Math.abs(n) > 5 ? n / 100 : n;
+}
+
+function officialPriceRecord(player) {
+  const projections = Array.isArray(player.price_change_projections) ? player.price_change_projections : [];
+  const first = projections.length ? projections[0] : null;
+  const progress = normalisePercent(player.price_change_percent);
+  const predictedProgress = first ? normalisePercent(first.projected_percent) : progress;
+  const likelihood = first && Number.isFinite(Number(first.likelihood)) ? Number(first.likelihood) : null;
+  return { progress, predictedProgress, likelihood };
 }
 
 function normalisePredictor(source) {
@@ -72,69 +72,40 @@ function normalisePredictor(source) {
 
   records.forEach(([key, item]) => {
     if (!item || typeof item !== "object") return;
-    const id = firstFinite(item.id, item.element_id, item.player_id, key);
+    const id = Number(item.id ?? item.element_id ?? item.player_id ?? key);
     if (!Number.isInteger(id) || id <= 0) return;
-
-    const progress = normaliseValue(firstFinite(
-      item.progress,
-      item.progress_now,
-      item.current_progress,
-      item.progress_now_fraction,
-      item.progress_now_pct != null ? Number(item.progress_now_pct) : null
-    ));
-    const predictedProgress = normaliseValue(firstFinite(
-      item.progress_tonight,
-      item.predicted_progress,
-      item.predictedProgress,
-      item.prediction,
-      item.tonight,
-      item.prediction_fraction,
-      item.prediction_pct != null ? Number(item.prediction_pct) : null,
-      progress
-    ));
-
-    players[String(id)] = {
-      progress,
-      predictedProgress,
-      perHour: normaliseValue(firstFinite(
-        item.per_hour,
-        item.perHour,
-        item.per_hour_pct != null ? Number(item.per_hour_pct) : null
-      ))
-    };
+    const progress = normalisePercent(
+      item.progress ?? item.progress_now ?? item.current_progress ?? item.progress_now_pct
+    );
+    const predictedProgress = normalisePercent(
+      item.progress_tonight ?? item.predicted_progress ?? item.predictedProgress ?? item.prediction ?? progress
+    );
+    const likelihood = Number.isFinite(Number(item.likelihood)) ? Number(item.likelihood) : null;
+    players[String(id)] = { progress, predictedProgress, likelihood };
   });
 
   return players;
 }
 
-function scanOfficialPriceFields(player) {
-  const keys = Object.keys(player || {});
-  const lower = {};
-  keys.forEach((key) => { lower[key.toLowerCase()] = player[key]; });
-
-  const pick = (names, contains) => {
-    for (const name of names) {
-      if (lower[name] !== undefined) return lower[name];
-    }
-    const key = keys.find((k) => contains.some((fragment) => k.toLowerCase().includes(fragment)));
-    return key ? player[key] : null;
-  };
-
-  return {
-    progress: normaliseValue(pick(
-      ["price_change_progress", "price_progress", "progress", "progress_now"],
-      ["progress"]
-    )),
-    predictedProgress: normaliseValue(pick(
-      ["price_change_predicted_progress", "predicted_progress", "progress_tonight", "prediction"],
-      ["predicted", "prediction", "tonight"]
-    ))
-  };
-}
-
 async function handlePriceData() {
-  let lastError = null;
+  // FPL's own Price Change Predictor fields are the source of truth.
+  // bootstrap-static exposes price_change_percent and price_change_projections[].
+  try {
+    const bootstrap = await fplJson("bootstrap-static/");
+    const players = {};
+    for (const player of bootstrap.elements || []) {
+      const record = officialPriceRecord(player);
+      if (record.progress !== null || record.predictedProgress !== null) {
+        players[String(player.id)] = record;
+      }
+    }
+    if (Object.keys(players).length) {
+      return json({ players, source: "fpl-bootstrap" }, 200, { "Cache-Control": "public, max-age=60" });
+    }
+  } catch (_) {}
 
+  // Keep the third-party feeds only as a fallback.
+  let lastError = null;
   for (const endpoint of PRICE_PREDICTOR_APIS) {
     try {
       const response = await fetch(endpoint, {
@@ -145,30 +116,12 @@ async function handlePriceData() {
       const source = raw && raw.players ? raw.players : raw && raw.data ? raw.data : raw;
       const players = normalisePredictor(source);
       if (Object.keys(players).length) {
-        return json({ players, source: endpoint }, 200, { "Cache-Control": "public, max-age=60" });
+        return json({ players, source: endpoint }, 200, { "Cache-Control": "public, max-age": 60 });
       }
       lastError = new Error(endpoint + " returned no player records");
     } catch (error) {
       lastError = error;
     }
-  }
-
-  // Last-resort fallback to FPL's own current public player feed. This also lets the
-  // app adopt official price-progress fields automatically if FPL changes where they live.
-  try {
-    const bootstrap = await fplJson("bootstrap-static/");
-    const players = {};
-    for (const player of bootstrap.elements || []) {
-      const fields = scanOfficialPriceFields(player);
-      if (fields.progress !== null || fields.predictedProgress !== null) {
-        players[String(player.id)] = fields;
-      }
-    }
-    if (Object.keys(players).length) {
-      return json({ players, source: "fpl-bootstrap" }, 200, { "Cache-Control": "public, max-age=60" });
-    }
-  } catch (error) {
-    lastError = error;
   }
 
   return json(
