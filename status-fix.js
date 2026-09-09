@@ -102,6 +102,11 @@
     lastSortedOrder="";
   }
 
+  function reveal(){
+    var style=document.getElementById("pw-coldstart-style");
+    if(style)style.remove();
+  }
+
   function decorate(){
     if(applying)return;
     applying=true;
@@ -114,12 +119,14 @@
         var nameCell=tr.querySelector(".player-name");
         if(nameCell)tr.setAttribute("data-player-name",nameCell.textContent||"");
         var status=statusFor(id);
-        if(status==="—")return;
-        var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
-        if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
+        if(status!=="—"){
+          var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
+          if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
+        }
       });
       forceInitialAppSort();
       applyDefaultProgressSort();
+      if(initialSortApplied)reveal();
     }finally{
       applying=false;
     }
@@ -144,8 +151,10 @@
       if(direct.ok){
         loadData(await direct.json());
         decorate();
+        return;
       }
     }catch(e){}
+    reveal();
   }
 
   function start(){
@@ -161,7 +170,8 @@
     if(tbody)new MutationObserver(function(){
       if(!applying)decorate();
     }).observe(tbody,{childList:true});
-    fetchData();
+    setTimeout(function(){fetchData();},0);
+    setTimeout(function(){if(!initialSortApplied)reveal();},10000);
     setInterval(function(){fetchData();},30000);
   }
 
