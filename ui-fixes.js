@@ -93,13 +93,15 @@
     var style = document.createElement("style");
     style.id = "ponytail-table-center-style";
     style.textContent = [
-      "/* Ponytail: center the content inside each table column without changing sizing. */",
-      "thead th, tbody td { text-align: center; }",
-      "th button.sort-btn, th.num button.sort-btn { justify-content: center; }",
-      ".player-cell { justify-content: center; text-align: center; }",
-      ".player-cell .player-text { align-items: center; text-align: center; }",
-      ".player-meta { justify-content: center; }",
-      ".own-bar-wrap { justify-content: center; }"
+      "/* Ponytail: center actual column content without changing table sizing. */",
+      "thead th { text-align: center !important; }",
+      "thead th button.sort-btn, thead th.num button.sort-btn { justify-content: center !important; text-align: center !important; }",
+      "tbody td, tbody td.num { text-align: center !important; }",
+      ".player-cell { justify-content: center !important; text-align: center !important; }",
+      ".player-cell .player-text { align-items: center !important; text-align: center !important; }",
+      ".player-meta { justify-content: center !important; }",
+      ".action-buttons { justify-content: center !important; }",
+      ".own-bar-wrap { justify-content: center !important; }"
     ].join("\n");
     document.head.appendChild(style);
   }
