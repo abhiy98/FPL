@@ -32,28 +32,20 @@
     var stats = dashboard.querySelectorAll(".pw-stat");
     if (!stats.length) return;
 
-    var deadlineStat = null;
-    stats.forEach(function(stat){
-      var label = stat.querySelector(".label");
-      if (label && (label.textContent.trim().toLowerCase() === "deadline" || label.textContent.trim().toLowerCase() === "price change")) {
-        deadlineStat = stat;
-      }
-    });
-    if (!deadlineStat) deadlineStat = stats[stats.length - 1];
+    var target = stats[stats.length - 1];
+    var label = target.querySelector(".label");
+    var value = target.querySelector(".value");
+    var hint = target.querySelector(".hint");
+    if (!label || !value || !hint) return;
 
-    var label = deadlineStat.querySelector(".label");
-    var value = deadlineStat.querySelector(".value");
-    var hint = deadlineStat.querySelector(".hint");
-    if (label && label.textContent !== "Price change") label.textContent = "Price change";
-    if (hint && hint.textContent !== "next price change") hint.textContent = "next price change";
-    if (value) {
-      value.id = "pwPriceTimer";
-      var countdown = formatCountdownToPriceChange();
-      if (value.textContent !== countdown) value.textContent = countdown;
-    }
+    if (label.textContent !== "Price change") label.textContent = "Price change";
+    if (hint.textContent !== "next price change") hint.textContent = "next price change";
+    value.id = "pwPriceTimer";
+    var countdown = formatCountdownToPriceChange();
+    if (value.textContent !== countdown) value.textContent = countdown;
 
     dashboard.querySelectorAll(".pw-price-timer").forEach(function(timer){
-      if (!deadlineStat.contains(timer)) timer.remove();
+      if (!target.contains(timer)) timer.remove();
     });
   }
 
@@ -92,13 +84,11 @@
 
       var cells = row.querySelectorAll("td");
       if (cells.length !== 6) return;
-      var thisGwCell = cells[4];
-      var ownedCell = cells[5];
+
       var cell = document.createElement("td");
       cell.className = "num total-points-cell";
       cell.textContent = pointsById[id];
-      thisGwCell.after(cell);
-      ownedCell.classList.add("owned-column-cell");
+      cells[4].after(cell);
     });
   }
 
@@ -113,7 +103,7 @@
       pointsLoaded = true;
       addPointsCells();
     }).catch(function(){
-      // Main table remains usable if the secondary points request fails.
+      // Secondary points data is optional; keep the main app usable.
     });
   }
 
@@ -145,15 +135,16 @@
     runFixes();
     loadPoints();
 
-    // The main app replaces table/dashboard DOM during startup. Observe only
-    // structural changes, not characterData, so our own text updates cannot loop.
+    // React only to structural rendering changes. Never observe characterData
+    // or run a repeating full-page fix, which can create a mutation loop.
     var bodyObserver = new MutationObserver(function(mutations){
-      var structuralChange = mutations.some(function(m){ return m.type === "childList" && m.addedNodes.length; });
+      var structuralChange = mutations.some(function(m){
+        return m.type === "childList" && m.addedNodes.length > 0;
+      });
       if (structuralChange) runFixes();
     });
     bodyObserver.observe(document.body, {childList:true, subtree:true});
 
-    // Update only the countdown value, without scanning/rebuilding the DOM.
     setInterval(function(){
       var timer = document.getElementById("pwPriceTimer");
       if (timer) timer.textContent = formatCountdownToPriceChange();
