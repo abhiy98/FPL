@@ -26,8 +26,6 @@
   }
 
   function movePriceTimer(){
-    var timer = document.getElementById("pwPriceTimer");
-    var timerBar = timer && timer.closest(".pw-price-timer");
     var dashboard = document.getElementById("pwDashboard");
     if (!dashboard) return;
 
@@ -44,54 +42,29 @@
     var label = deadlineStat.querySelector(".label");
     var value = deadlineStat.querySelector(".value");
     var hint = deadlineStat.querySelector(".hint");
-    if (!value) return;
-
-    if (label && label.textContent !== "Price change") label.textContent = "Price change";
-    if (hint && hint.textContent !== "next price change") hint.textContent = "next price change";
-    if (value.id !== "pwPriceTimer") value.id = "pwPriceTimer";
-
-    var countdown = formatCountdownToPriceChange();
-    if (value.textContent !== countdown) value.textContent = countdown;
-
-    if (timerBar && !deadlineStat.contains(timerBar)) timerBar.remove();
-    if (timer && timer !== value && !value.contains(timer)) timer.remove();
-  }
-
-  function fixTotalPointsHeader(){
-    var head = document.querySelector("thead tr");
-    if (!head) return;
-
-    var headers = head.querySelectorAll("th");
-    for (var i = 0; i < headers.length; i++){
-      var th = headers[i];
-      var button = th.querySelector(".sort-btn");
-      if (!button) continue;
-      var text = button.textContent.trim().replace(/\s+/g, " ");
-      if (text.indexOf("Total Points") !== -1) return;
-      if (text === "Points"){
-        th.setAttribute("data-key", "points");
-        var firstText = button.firstChild;
-        if (firstText && firstText.nodeType === 3) firstText.nodeValue = "Total Points";
-        else button.insertBefore(document.createTextNode("Total Points"), button.firstChild);
-        return;
-      }
+    if (label) label.textContent = "Price change";
+    if (hint) hint.textContent = "next price change";
+    if (value) {
+      value.id = "pwPriceTimer";
+      value.textContent = formatCountdownToPriceChange();
     }
+
+    dashboard.querySelectorAll(".pw-price-timer").forEach(function(timer){
+      if (!deadlineStat.contains(timer)) timer.remove();
+    });
   }
 
-  function addPointsCells(){
-    if (!pointsLoaded) return;
-    var tbody = document.getElementById("tbody");
-    if (!tbody) return;
-    tbody.querySelectorAll("tr[data-player-id]").forEach(function(row){
-      if (row.querySelector(".total-points-cell")) return;
-      var id = Number(row.getAttribute("data-player-id"));
-      if (!(id in pointsById)) return;
-      var eventCell = row.querySelector('td:nth-child(5)');
-      if (!eventCell) return;
-      var cell = document.createElement("td");
-      cell.className = "num total-points-cell";
-      cell.textContent = pointsById[id];
-      eventCell.after(cell);
+  function removePointsColumn(){
+    document.querySelectorAll('thead th, tbody tr').forEach(function(row){
+      if (row.tagName === "TH") {
+        var button = row.querySelector(".sort-btn");
+        if (button && button.textContent.trim().replace(/\s+/g, " ") === "Points") row.remove();
+      } else {
+        var cells = row.querySelectorAll("td");
+        // Remove the legacy Points cell at the sixth column. The row should contain:
+        // Player, GW1 price, Current, Total Δ, This GW, Owned.
+        if (cells.length >= 6) cells[5].remove();
+      }
     });
   }
 
@@ -100,7 +73,6 @@
     var style = document.createElement("style");
     style.id = "ponytail-table-center-style";
     style.textContent = [
-      "/* Ponytail: center the actual cell contents; preserve table dimensions. */",
       "thead th { text-align: center !important; }",
       "thead th .sort-btn, thead th.num .sort-btn { justify-content: center !important; text-align: center !important; }",
       "tbody td, tbody td.num { text-align: center !important; }",
@@ -114,53 +86,26 @@
   }
 
   function loadPoints(){
-    fetch("/fpl?path=bootstrap-static/", {cache:"no-store"}).then(function(res){
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    }).then(function(data){
-      (data.elements || []).forEach(function(player){
-        pointsById[player.id] = player.total_points || 0;
-      });
-      pointsLoaded = true;
-      addPointsCells();
-    }).catch(function(){
-      // The main app can still load and display all other columns if this request fails.
-    });
+    // No Total Points column is displayed; keep this disabled so legacy cells
+    // cannot be reintroduced asynchronously.
+    pointsLoaded = false;
+    pointsById = {};
   }
 
   function boot(){
     centerTableColumns();
-    fixTotalPointsHeader();
+    removePointsColumn();
     movePriceTimer();
-    loadPoints();
 
-    setInterval(function(){
-      fixTotalPointsHeader();
+    var fix = function(){
+      removePointsColumn();
       movePriceTimer();
-      addPointsCells();
-    }, 500);
+      centerTableColumns();
+    };
 
-    var tbody = document.getElementById("tbody");
-    if (tbody) {
-      var observer = new MutationObserver(function(){
-        fixTotalPointsHeader();
-        addPointsCells();
-      });
-      observer.observe(tbody, {childList:true, subtree:true});
-    }
-
-    var dashboard = document.getElementById("pwDashboard");
-    if (dashboard) {
-      var dashboardObserver = new MutationObserver(function(){
-        movePriceTimer();
-      });
-      dashboardObserver.observe(dashboard, {childList:true, subtree:true});
-    }
-
-    var bodyObserver = new MutationObserver(function(){
-      movePriceTimer();
-    });
-    bodyObserver.observe(document.body, {childList:true, subtree:true});
+    var observer = new MutationObserver(fix);
+    observer.observe(document.body, {childList:true, subtree:true, characterData:true});
+    setInterval(fix, 250);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
