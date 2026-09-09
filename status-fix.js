@@ -37,10 +37,10 @@
       if(id===null)return;
       var progress=normalise(item.progress!=null?item.progress:(item.progress_now!=null?item.progress_now:null));
       var predicted=normalise(item.progress_tonight!=null?item.progress_tonight:(item.predicted_progress!=null?item.predicted_progress:(item.predictedProgress!=null?item.predictedProgress:(item.prediction!=null?item.prediction:progress))));
-      if(predicted===null) return;
+      if(predicted===null)return;
       next[String(Math.trunc(id))]={progress:progress,predicted:predicted};
     });
-    if(Object.keys(next).length) dataById=next;
+    if(Object.keys(next).length)dataById=next;
   }
 
   function statusFor(id){
@@ -64,7 +64,7 @@
         var cell=tr.querySelector("td:nth-child(2)");
         if(!cell)return;
         var status=statusFor(id);
-        if(status==="—")return;
+        if(status==="—" || cell.textContent.trim()===status)return;
         var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
         cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
       });
@@ -74,7 +74,7 @@
   }
 
   async function fetchData(){
-    if(Date.now()-lastFetch<FETCH_INTERVAL)return;
+    if(Date.now()-lastFetch<FETCH_INTERVAL){decorate();return;}
     lastFetch=Date.now();
     try{
       var response=await fetch("/price-data?ts="+Date.now(),{cache:"no-store"});
@@ -102,9 +102,7 @@
     document.head.appendChild(style);
 
     var tbody=document.getElementById("tbody");
-    if(tbody){
-      new MutationObserver(function(){decorate();}).observe(tbody,{childList:true});
-    }
+    if(tbody)new MutationObserver(function(){decorate();}).observe(tbody,{childList:true});
     fetchData();
     setInterval(function(){fetchData();},30000);
   }
