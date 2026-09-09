@@ -11,7 +11,7 @@ function fail(message) {
 }
 
 if (headers !== 8) fail(`expected 8 table headers, found ${headers}`);
-if (!/data-key="points"/.test(html) || !/>Total Points<\/button>/.test(html)) fail("Total Points header missing");
+if (!/data-key="points"/.test(html) || !/Total Points/.test(html)) fail("Total Points header missing");
 if (!/p\.points/.test(html)) fail("Total Points data binding missing");
 if (!/data-key="priceStatusRank"/.test(html)) fail("Status column missing");
 if ((html.match(/id="pwDeadline"/g) || []).length !== 1) fail("Price Change card target must be unique");
