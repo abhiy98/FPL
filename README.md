@@ -6,7 +6,7 @@
 - `worker.js` — Cloudflare Worker for the FPL, team and price-predictor APIs
 - `wrangler.jsonc` — Cloudflare Worker + static assets configuration
 - `scripts/patch-index.js` — deterministic build transformation and structural validation
-- `scripts/verify-build.js` — standalone build-output smoke test
+- `scripts/verify-build.js` — standalone build-output and PWA-state smoke test
 - `functions/` and `netlify/` — legacy deployment handlers retained for reference while Cloudflare is the primary deployment target
 
 ## Cloudflare deployment
@@ -19,7 +19,7 @@ node scripts/patch-index.js && node scripts/verify-build.js
 
 Then deploy with `npx wrangler deploy`.
 
-The build step produces the final `index.html`; the Cloudflare Worker serves that HTML and handles the `/fpl`, `/team` and `/price-data` API routes. The service worker adds the player-photo, status and scrolling enhancements for the installed/served app.
+The build step produces the final `index.html`; the Cloudflare Worker serves that HTML and handles the `/fpl`, `/team` and `/price-data` API routes. The service worker adds player-photo, scrolling and local-state enhancements for the installed/served app.
 
 ## FPL data
 
