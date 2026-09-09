@@ -47,28 +47,34 @@
     if (label) label.textContent = "Price change";
     if (hint) hint.textContent = "next price change";
 
-    if (timer) {
-      if (value) {
-        value.id = "pwPriceTimer";
-        value.textContent = formatCountdownToPriceChange();
-      }
-      timerBar.remove();
-    } else if (value) {
+    if (value) {
+      value.id = "pwPriceTimer";
       value.textContent = formatCountdownToPriceChange();
     }
+
+    if (timerBar && !deadlineStat.contains(timerBar)) timerBar.remove();
+    if (timer && !value?.contains(timer)) timer && timer.remove();
   }
 
-  function addTotalPointsHeader(){
+  function fixTotalPointsHeader(){
     var head = document.querySelector("thead tr");
-    if (!head || head.querySelector('th[data-key="points"]')) return;
-    var eventHeader = head.querySelector('th[data-key="event"]');
-    if (!eventHeader) return;
+    if (!head) return;
 
-    var th = document.createElement("th");
-    th.className = "num";
-    th.setAttribute("data-key", "points");
-    th.innerHTML = '<button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button>';
-    eventHeader.after(th);
+    var headers = head.querySelectorAll("th");
+    for (var i = 0; i < headers.length; i++){
+      var th = headers[i];
+      var button = th.querySelector(".sort-btn");
+      if (!button) continue;
+      var text = button.textContent.trim().replace(/\s+/g, " ");
+      if (text.indexOf("Total Points") !== -1) return;
+      if (text === "Points"){
+        th.setAttribute("data-key", "points");
+        var firstText = button.firstChild;
+        if (firstText && firstText.nodeType === 3) firstText.nodeValue = "Total Points";
+        else button.insertBefore(document.createTextNode("Total Points"), button.firstChild);
+        return;
+      }
+    }
   }
 
   function addPointsCells(){
@@ -93,10 +99,11 @@
     var style = document.createElement("style");
     style.id = "ponytail-table-center-style";
     style.textContent = [
-      "/* Ponytail: center actual column content without changing table sizing. */",
+      "/* Ponytail: center the actual cell contents; preserve table dimensions. */",
       "thead th { text-align: center !important; }",
-      "thead th button.sort-btn, thead th.num button.sort-btn { justify-content: center !important; text-align: center !important; }",
+      "thead th .sort-btn, thead th.num .sort-btn { justify-content: center !important; text-align: center !important; }",
       "tbody td, tbody td.num { text-align: center !important; }",
+      "tbody td.num > * { margin-left: auto; margin-right: auto; }",
       ".player-cell { justify-content: center !important; text-align: center !important; }",
       ".player-cell .player-text { align-items: center !important; text-align: center !important; }",
       ".player-meta { justify-content: center !important; }",
@@ -123,24 +130,39 @@
 
   function boot(){
     centerTableColumns();
-    addTotalPointsHeader();
+    fixTotalPointsHeader();
     movePriceTimer();
     loadPoints();
 
     setInterval(function(){
+      fixTotalPointsHeader();
       movePriceTimer();
       addPointsCells();
       centerTableColumns();
-    }, 1000);
+    }, 500);
 
     var tbody = document.getElementById("tbody");
     if (tbody) {
       var observer = new MutationObserver(function(){
+        fixTotalPointsHeader();
         addPointsCells();
         centerTableColumns();
       });
       observer.observe(tbody, {childList:true, subtree:true});
     }
+
+    var dashboard = document.getElementById("pwDashboard");
+    if (dashboard) {
+      var dashboardObserver = new MutationObserver(function(){
+        movePriceTimer();
+      });
+      dashboardObserver.observe(dashboard, {childList:true, subtree:true, characterData:true});
+    }
+
+    var bodyObserver = new MutationObserver(function(){
+      movePriceTimer();
+    });
+    bodyObserver.observe(document.body, {childList:true, subtree:true});
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
