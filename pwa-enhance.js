@@ -92,15 +92,10 @@
       var th=document.querySelector('th[data-key="'+s.sortKey+'"]');
       var btn=th&&th.querySelector(".sort-btn");
       if(btn){
-        var startsOnDefaultKey=s.sortKey==="total";
-        if(!startsOnDefaultKey || s.sortDir==="asc")btn.click();
-        if(!startsOnDefaultKey && s.sortDir==="asc")btn.click();
-      }
-    }else{
-      var defaultSort=document.querySelector('th[data-key="priceProgress"] .sort-btn');
-      if(defaultSort){
-        defaultSort.click();
-        defaultSort.click();
+        var defaultSortKey="priceProgress";
+        if(s.sortKey===defaultSortKey && s.sortDir==="asc") return;
+        btn.click();
+        if(s.sortDir==="desc")btn.click();
       }
     }
   }
