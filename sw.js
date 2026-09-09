@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v9";
+var CACHE = "pricewatch-v10";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
@@ -37,6 +37,7 @@ async function injectEnhancements(response){
   var type=response.headers.get("content-type") || "";
   if (type.indexOf("text/html") === -1) return response;
   var html=await response.text();
+  if (html.indexOf("pw-coldstart-style") === -1) html=html.replace(/<\/head>/i,'<style id="pw-coldstart-style">#tbody tr[data-player-id]{visibility:hidden!important}</style></head>');
   if (html.indexOf("/status-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
   if (html.indexOf("/jersey-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/jersey-fix.js"></script></body>');
   if (html.indexOf("/scroll-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/scroll-fix.js"></script></body>');
