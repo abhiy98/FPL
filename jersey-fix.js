@@ -9,7 +9,7 @@
     if(document.getElementById("fpl-jersey-style"))return;
     var style=document.createElement("style");
     style.id="fpl-jersey-style";
-    style.textContent=".fpl-jersey{width:30px;height:38px;object-fit:contain;object-position:center bottom;flex:none;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}.player-cell{gap:8px}.player-text{min-width:0}";
+    style.textContent=".fpl-jersey{width:30px;height:38px;object-fit:contain;object-position:center bottom;flex:none;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}.player-cell{gap:8px;align-items:center}.player-text{min-width:0;display:flex;flex-direction:column;justify-content:center}";
     document.head.appendChild(style);
   }
 
@@ -18,8 +18,9 @@
     rows.forEach(function(row){
       var id=row.getAttribute("data-player-id");
       var name=row.querySelector(".player-name");
-      if(!id||!name)return;
-      var existing=name.parentNode.querySelector(".fpl-jersey");
+      var text=row.querySelector(".player-text");
+      if(!id||!name||!text)return;
+      var existing=row.querySelector(".player-cell > .fpl-jersey");
       if(existing)return;
       var code=photoById[String(id)];
       if(!code)return;
@@ -34,7 +35,7 @@
         this.dataset.fallback="1";
         this.src="https://resources.premierleague.com/premierleague/photos/players/110x140/"+encodeURIComponent(code)+".png";
       };
-      name.parentNode.insertBefore(img,name);
+      text.parentNode.insertBefore(img,text);
     });
   }
 
