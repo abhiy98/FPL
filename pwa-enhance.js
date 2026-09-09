@@ -97,8 +97,11 @@
         if(!startsOnDefaultKey && s.sortDir==="asc")btn.click();
       }
     }else{
-      var defaultSort=document.querySelector('th[data-key="priceStatusRank"] .sort-btn');
-      if(defaultSort)defaultSort.click();
+      var defaultSort=document.querySelector('th[data-key="priceProgress"] .sort-btn');
+      if(defaultSort){
+        defaultSort.click();
+        defaultSort.click();
+      }
     }
   }
 
