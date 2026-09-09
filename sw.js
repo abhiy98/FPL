@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v8";
+var CACHE = "pricewatch-v9";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
@@ -28,6 +28,10 @@ function isExternalData(url){
     url.indexOf("resources.premierleague.com/premierleague/photos/") !== -1;
 }
 
+function isEnhancementScript(url){
+  return /\/(?:status-fix|jersey-fix|scroll-fix)\.js(?:\?|$)/.test(url);
+}
+
 async function injectEnhancements(response){
   if (!response || !response.ok) return response;
   var type=response.headers.get("content-type") || "";
@@ -44,6 +48,11 @@ async function injectEnhancements(response){
 self.addEventListener("fetch", function(e){
   var url = e.request.url;
   if (isExternalData(url)) return;
+
+  if (isEnhancementScript(url)){
+    e.respondWith(fetch(e.request, { cache: "no-store" }));
+    return;
+  }
 
   var isPageRequest = e.request.mode === "navigate" || url.indexOf("index.html") !== -1 || url.endsWith("/");
   if (isPageRequest){
