@@ -35,6 +35,9 @@ mustReplace("header alignment", /th\.num button\.sort-btn\{justify-content:flex-
 mustReplace("ownership alignment", /\.own-bar-wrap\{display:flex;align-items:center;justify-content:flex-end;/, ".own-bar-wrap{display:flex;align-items:center;justify-content:center;");
 mustReplace("player alignment", /\.player-cell\{display:flex;align-items:center;gap:9px;/, ".player-cell{display:flex;align-items:center;justify-content:center;gap:9px;");
 
+// Default the canonical app state to most-negative price-progress first.
+mustReplace("default progress sort", /sortKey: "total",\n    sortDir: "desc",/, 'sortKey: "priceProgress",\n    sortDir: "asc",');
+
 // Add the official daily price-change countdown (00:00 Europe/London).
 mustReplace("price countdown", /  function renderDashboard\(\)\{/, `  function londonOffsetMinutes(at){var ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(at),v={};ps.forEach(function(p){v[p.type]=p.value;});return (Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute,+v.second)-at.getTime())/60000;}\n  function formatPriceChangeCountdown(){var now=new Date(),ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now),v={};ps.forEach(function(p){v[p.type]=p.value;});var targetBase=Date.UTC(+v.year,+v.month-1,+v.day+1,0,0,0),target=targetBase-londonOffsetMinutes(now)*60000;target=targetBase-londonOffsetMinutes(new Date(target))*60000;var diff=Math.max(0,target-now.getTime()),total=Math.floor(diff/1000),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60;return h+'h '+String(m).padStart(2,'0')+'m '+String(s).padStart(2,'0')+'s';}\n\n  function renderDashboard(){`);
 
