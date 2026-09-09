@@ -93,9 +93,10 @@
       var btn=th&&th.querySelector(".sort-btn");
       if(btn){
         var defaultSortKey="priceProgress";
+        var firstDirection=s.sortKey==="name"?"asc":(s.sortKey===defaultSortKey?"asc":"desc");
         if(s.sortKey===defaultSortKey && s.sortDir==="asc") return;
         btn.click();
-        if(s.sortDir==="desc")btn.click();
+        if(s.sortDir!==firstDirection)btn.click();
       }
     }
   }
