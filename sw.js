@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v7";
+var CACHE = "pricewatch-v8";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
@@ -35,6 +35,7 @@ async function injectEnhancements(response){
   var html=await response.text();
   if (html.indexOf("/status-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
   if (html.indexOf("/jersey-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/jersey-fix.js"></script></body>');
+  if (html.indexOf("/scroll-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/scroll-fix.js"></script></body>');
   var headers=new Headers(response.headers);
   headers.delete("content-length");
   return new Response(html,{status:response.status,statusText:response.statusText,headers:headers});
