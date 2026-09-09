@@ -44,16 +44,17 @@
     var label = deadlineStat.querySelector(".label");
     var value = deadlineStat.querySelector(".value");
     var hint = deadlineStat.querySelector(".hint");
-    if (label) label.textContent = "Price change";
-    if (hint) hint.textContent = "next price change";
+    if (!value) return;
 
-    if (value) {
-      value.id = "pwPriceTimer";
-      value.textContent = formatCountdownToPriceChange();
-    }
+    if (label && label.textContent !== "Price change") label.textContent = "Price change";
+    if (hint && hint.textContent !== "next price change") hint.textContent = "next price change";
+    if (value.id !== "pwPriceTimer") value.id = "pwPriceTimer";
+
+    var countdown = formatCountdownToPriceChange();
+    if (value.textContent !== countdown) value.textContent = countdown;
 
     if (timerBar && !deadlineStat.contains(timerBar)) timerBar.remove();
-    if (timer && !value?.contains(timer)) timer && timer.remove();
+    if (timer && timer !== value && !value.contains(timer)) timer.remove();
   }
 
   function fixTotalPointsHeader(){
@@ -103,7 +104,6 @@
       "thead th { text-align: center !important; }",
       "thead th .sort-btn, thead th.num .sort-btn { justify-content: center !important; text-align: center !important; }",
       "tbody td, tbody td.num { text-align: center !important; }",
-      "tbody td.num > * { margin-left: auto; margin-right: auto; }",
       ".player-cell { justify-content: center !important; text-align: center !important; }",
       ".player-cell .player-text { align-items: center !important; text-align: center !important; }",
       ".player-meta { justify-content: center !important; }",
@@ -138,7 +138,6 @@
       fixTotalPointsHeader();
       movePriceTimer();
       addPointsCells();
-      centerTableColumns();
     }, 500);
 
     var tbody = document.getElementById("tbody");
@@ -146,7 +145,6 @@
       var observer = new MutationObserver(function(){
         fixTotalPointsHeader();
         addPointsCells();
-        centerTableColumns();
       });
       observer.observe(tbody, {childList:true, subtree:true});
     }
@@ -156,7 +154,7 @@
       var dashboardObserver = new MutationObserver(function(){
         movePriceTimer();
       });
-      dashboardObserver.observe(dashboard, {childList:true, subtree:true, characterData:true});
+      dashboardObserver.observe(dashboard, {childList:true, subtree:true});
     }
 
     var bodyObserver = new MutationObserver(function(){
