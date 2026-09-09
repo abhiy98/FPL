@@ -35,18 +35,21 @@
     var deadlineStat = null;
     stats.forEach(function(stat){
       var label = stat.querySelector(".label");
-      if (label && label.textContent.trim().toLowerCase() === "deadline") deadlineStat = stat;
+      if (label && (label.textContent.trim().toLowerCase() === "deadline" || label.textContent.trim().toLowerCase() === "price change")) {
+        deadlineStat = stat;
+      }
     });
     if (!deadlineStat) deadlineStat = stats[stats.length - 1];
 
     var label = deadlineStat.querySelector(".label");
     var value = deadlineStat.querySelector(".value");
     var hint = deadlineStat.querySelector(".hint");
-    if (label) label.textContent = "Price change";
-    if (hint) hint.textContent = "next price change";
+    if (label && label.textContent !== "Price change") label.textContent = "Price change";
+    if (hint && hint.textContent !== "next price change") hint.textContent = "next price change";
     if (value) {
       value.id = "pwPriceTimer";
-      value.textContent = formatCountdownToPriceChange();
+      var countdown = formatCountdownToPriceChange();
+      if (value.textContent !== countdown) value.textContent = countdown;
     }
 
     dashboard.querySelectorAll(".pw-price-timer").forEach(function(timer){
@@ -60,27 +63,21 @@
 
     var headers = head.querySelectorAll("th");
     var pointsHeader = null;
-
     for (var i = 0; i < headers.length; i++){
-      var th = headers[i];
-      var button = th.querySelector(".sort-btn");
+      var button = headers[i].querySelector(".sort-btn");
       if (!button) continue;
-
       var text = button.textContent.trim().replace(/\s+/g, " ");
       if (text === "Points" || text === "Total Points"){
-        pointsHeader = th;
+        pointsHeader = headers[i];
         break;
       }
     }
-
     if (!pointsHeader) return;
 
     pointsHeader.setAttribute("data-key", "points");
     pointsHeader.classList.add("num");
     var button = pointsHeader.querySelector(".sort-btn");
-    var firstText = button.firstChild;
-    if (firstText && firstText.nodeType === 3) firstText.nodeValue = "Total Points";
-    else button.insertBefore(document.createTextNode("Total Points"), button.firstChild);
+    if (button.firstChild && button.firstChild.nodeType === 3) button.firstChild.nodeValue = "Total Points";
   }
 
   function addPointsCells(){
@@ -90,18 +87,18 @@
 
     tbody.querySelectorAll("tr[data-player-id]").forEach(function(row){
       if (row.querySelector(".total-points-cell")) return;
-
       var id = Number(row.getAttribute("data-player-id"));
       if (!(id in pointsById)) return;
 
       var cells = row.querySelectorAll("td");
-      if (cells.length < 6) return;
-
+      if (cells.length !== 6) return;
       var thisGwCell = cells[4];
+      var ownedCell = cells[5];
       var cell = document.createElement("td");
       cell.className = "num total-points-cell";
       cell.textContent = pointsById[id];
       thisGwCell.after(cell);
+      ownedCell.classList.add("owned-column-cell");
     });
   }
 
@@ -128,7 +125,6 @@
       "thead th { text-align: center !important; }",
       "thead th .sort-btn, thead th.num .sort-btn { justify-content: center !important; text-align: center !important; }",
       "tbody td, tbody td.num { text-align: center !important; }",
-      "tbody td.num > * { margin-left: auto; margin-right: auto; }",
       ".player-cell { justify-content: center !important; text-align: center !important; }",
       ".player-cell .player-text { align-items: center !important; text-align: center !important; }",
       ".player-meta { justify-content: center !important; }",
@@ -138,22 +134,30 @@
     document.head.appendChild(style);
   }
 
-  function boot(){
+  function runFixes(){
     centerTableColumns();
     ensureTotalPointsHeader();
     movePriceTimer();
+    addPointsCells();
+  }
+
+  function boot(){
+    runFixes();
     loadPoints();
 
-    var fix = function(){
-      ensureTotalPointsHeader();
-      addPointsCells();
-      movePriceTimer();
-      centerTableColumns();
-    };
+    // The main app replaces table/dashboard DOM during startup. Observe only
+    // structural changes, not characterData, so our own text updates cannot loop.
+    var bodyObserver = new MutationObserver(function(mutations){
+      var structuralChange = mutations.some(function(m){ return m.type === "childList" && m.addedNodes.length; });
+      if (structuralChange) runFixes();
+    });
+    bodyObserver.observe(document.body, {childList:true, subtree:true});
 
-    var observer = new MutationObserver(fix);
-    observer.observe(document.body, {childList:true, subtree:true, characterData:true});
-    setInterval(fix, 250);
+    // Update only the countdown value, without scanning/rebuilding the DOM.
+    setInterval(function(){
+      var timer = document.getElementById("pwPriceTimer");
+      if (timer) timer.textContent = formatCountdownToPriceChange();
+    }, 1000);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
