@@ -8,6 +8,7 @@
   var FETCH_INTERVAL=5*60*1000;
   var defaultProgressSort=true;
   var lastSortedOrder="";
+  var initialSortApplied=false;
 
   function number(v){
     var n=Number(v);
@@ -88,10 +89,38 @@
     lastSortedOrder=desired;
   }
 
+  function forceInitialAppSort(){
+    if(initialSortApplied)return;
+    var tbody=document.getElementById("tbody");
+    var button=document.querySelector('th[data-key="priceProgress"] .sort-btn');
+    if(!tbody||!button)return;
+    if(!tbody.querySelector('tr[data-player-id]'))return;
+    initialSortApplied=true;
+    button.click();
+    button.click();
+    defaultProgressSort=false;
+    lastSortedOrder="";
+  }
+
+  function removeWatchlistUI(){
+    var toggle=document.getElementById("watchlistOnly");
+    if(toggle)toggle.remove();
+    document.querySelectorAll(".watch-btn").forEach(function(btn){btn.remove();});
+    document.querySelectorAll(".pw-row-watch").forEach(function(row){row.classList.remove("pw-row-watch");});
+    var note=document.getElementById("pwTeamNote");
+    if(note)note.textContent="Favourites and your Team ID are saved locally on this device. No login is required.";
+  }
+
+  function reveal(){
+    var style=document.getElementById("pw-coldstart-style");
+    if(style)style.remove();
+  }
+
   function decorate(){
     if(applying)return;
     applying=true;
     try{
+      removeWatchlistUI();
       document.querySelectorAll("#tbody tr[data-player-id]").forEach(function(tr){
         var id=tr.getAttribute("data-player-id");
         if(!id)return;
@@ -100,11 +129,14 @@
         var nameCell=tr.querySelector(".player-name");
         if(nameCell)tr.setAttribute("data-player-name",nameCell.textContent||"");
         var status=statusFor(id);
-        if(status==="—")return;
-        var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
-        if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
+        if(status!=="—"){
+          var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
+          if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
+        }
       });
+      forceInitialAppSort();
       applyDefaultProgressSort();
+      if(initialSortApplied)reveal();
     }finally{
       applying=false;
     }
@@ -129,15 +161,19 @@
       if(direct.ok){
         loadData(await direct.json());
         decorate();
+        return;
       }
     }catch(e){}
+    removeWatchlistUI();
+    reveal();
   }
 
   function start(){
     var style=document.createElement("style");
-    style.textContent=".pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.neutral{color:#c9b8d1;background:rgba(255,255,255,.06)}";
+    style.textContent=".pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.neutral{color:#c9b8d1;background:rgba(255,255,255,.06)}.col-player button.sort-btn{justify-content:center!important;text-align:center!important;}";
     document.head.appendChild(style);
 
+    removeWatchlistUI();
     document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){
       btn.addEventListener("click",function(){defaultProgressSort=false;lastSortedOrder="";},{capture:true});
     });
@@ -146,7 +182,8 @@
     if(tbody)new MutationObserver(function(){
       if(!applying)decorate();
     }).observe(tbody,{childList:true});
-    fetchData();
+    setTimeout(function(){fetchData();},0);
+    setTimeout(function(){if(!initialSortApplied)reveal();},10000);
     setInterval(function(){fetchData();},30000);
   }
 
