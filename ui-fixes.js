@@ -54,17 +54,69 @@
     });
   }
 
-  function removePointsColumn(){
-    document.querySelectorAll('thead th, tbody tr').forEach(function(row){
-      if (row.tagName === "TH") {
-        var button = row.querySelector(".sort-btn");
-        if (button && button.textContent.trim().replace(/\s+/g, " ") === "Points") row.remove();
-      } else {
-        var cells = row.querySelectorAll("td");
-        // Remove the legacy Points cell at the sixth column. The row should contain:
-        // Player, GW1 price, Current, Total Δ, This GW, Owned.
-        if (cells.length >= 6) cells[5].remove();
+  function ensureTotalPointsHeader(){
+    var head = document.querySelector("thead tr");
+    if (!head) return;
+
+    var headers = head.querySelectorAll("th");
+    var pointsHeader = null;
+
+    for (var i = 0; i < headers.length; i++){
+      var th = headers[i];
+      var button = th.querySelector(".sort-btn");
+      if (!button) continue;
+
+      var text = button.textContent.trim().replace(/\s+/g, " ");
+      if (text === "Points" || text === "Total Points"){
+        pointsHeader = th;
+        break;
       }
+    }
+
+    if (!pointsHeader) return;
+
+    pointsHeader.setAttribute("data-key", "points");
+    pointsHeader.classList.add("num");
+    var button = pointsHeader.querySelector(".sort-btn");
+    var firstText = button.firstChild;
+    if (firstText && firstText.nodeType === 3) firstText.nodeValue = "Total Points";
+    else button.insertBefore(document.createTextNode("Total Points"), button.firstChild);
+  }
+
+  function addPointsCells(){
+    if (!pointsLoaded) return;
+    var tbody = document.getElementById("tbody");
+    if (!tbody) return;
+
+    tbody.querySelectorAll("tr[data-player-id]").forEach(function(row){
+      if (row.querySelector(".total-points-cell")) return;
+
+      var id = Number(row.getAttribute("data-player-id"));
+      if (!(id in pointsById)) return;
+
+      var cells = row.querySelectorAll("td");
+      if (cells.length < 6) return;
+
+      var thisGwCell = cells[4];
+      var cell = document.createElement("td");
+      cell.className = "num total-points-cell";
+      cell.textContent = pointsById[id];
+      thisGwCell.after(cell);
+    });
+  }
+
+  function loadPoints(){
+    fetch("/fpl?path=bootstrap-static/", {cache:"no-store"}).then(function(res){
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }).then(function(data){
+      (data.elements || []).forEach(function(player){
+        pointsById[player.id] = player.total_points || 0;
+      });
+      pointsLoaded = true;
+      addPointsCells();
+    }).catch(function(){
+      // Main table remains usable if the secondary points request fails.
     });
   }
 
@@ -76,6 +128,7 @@
       "thead th { text-align: center !important; }",
       "thead th .sort-btn, thead th.num .sort-btn { justify-content: center !important; text-align: center !important; }",
       "tbody td, tbody td.num { text-align: center !important; }",
+      "tbody td.num > * { margin-left: auto; margin-right: auto; }",
       ".player-cell { justify-content: center !important; text-align: center !important; }",
       ".player-cell .player-text { align-items: center !important; text-align: center !important; }",
       ".player-meta { justify-content: center !important; }",
@@ -85,20 +138,15 @@
     document.head.appendChild(style);
   }
 
-  function loadPoints(){
-    // No Total Points column is displayed; keep this disabled so legacy cells
-    // cannot be reintroduced asynchronously.
-    pointsLoaded = false;
-    pointsById = {};
-  }
-
   function boot(){
     centerTableColumns();
-    removePointsColumn();
+    ensureTotalPointsHeader();
     movePriceTimer();
+    loadPoints();
 
     var fix = function(){
-      removePointsColumn();
+      ensureTotalPointsHeader();
+      addPointsCells();
       movePriceTimer();
       centerTableColumns();
     };
