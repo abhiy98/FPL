@@ -89,7 +89,6 @@ function normalisePredictor(source) {
 
 async function handlePriceData() {
   // FPL's own Price Change Predictor fields are the source of truth.
-  // bootstrap-static exposes price_change_percent and price_change_projections[].
   try {
     const bootstrap = await fplJson("bootstrap-static/");
     const players = {};
@@ -104,7 +103,6 @@ async function handlePriceData() {
     }
   } catch (_) {}
 
-  // Keep the third-party feeds only as a fallback.
   let lastError = null;
   for (const endpoint of PRICE_PREDICTOR_APIS) {
     try {
@@ -116,7 +114,7 @@ async function handlePriceData() {
       const source = raw && raw.players ? raw.players : raw && raw.data ? raw.data : raw;
       const players = normalisePredictor(source);
       if (Object.keys(players).length) {
-        return json({ players, source: endpoint }, 200, { "Cache-Control": "public, max-age": 60 });
+        return json({ players, source: endpoint }, 200, { "Cache-Control": "public, max-age=60" });
       }
       lastError = new Error(endpoint + " returned no player records");
     } catch (error) {
