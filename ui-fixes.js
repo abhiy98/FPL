@@ -38,11 +38,10 @@
     var hint = target.querySelector(".hint");
     if (!label || !value || !hint) return;
 
-    if (label.textContent !== "Price change") label.textContent = "Price change";
-    if (hint.textContent !== "next price change") hint.textContent = "next price change";
+    label.textContent = "Price change";
+    hint.textContent = "next price change";
     value.id = "pwPriceTimer";
-    var countdown = formatCountdownToPriceChange();
-    if (value.textContent !== countdown) value.textContent = countdown;
+    value.textContent = formatCountdownToPriceChange();
 
     dashboard.querySelectorAll(".pw-price-timer").forEach(function(timer){
       if (!target.contains(timer)) timer.remove();
@@ -124,9 +123,18 @@
     document.head.appendChild(style);
   }
 
+  function removeHeaderPriceTimer(){
+    document.querySelectorAll("header .pw-price-timer, header [id=\"pwPriceTimer\"]").forEach(function(el){
+      var container = el.closest(".pw-price-timer");
+      if (container) container.remove();
+      else el.remove();
+    });
+  }
+
   function runFixes(){
     centerTableColumns();
     ensureTotalPointsHeader();
+    removeHeaderPriceTimer();
     movePriceTimer();
     addPointsCells();
   }
@@ -135,8 +143,6 @@
     runFixes();
     loadPoints();
 
-    // React only to structural rendering changes. Never observe characterData
-    // or run a repeating full-page fix, which can create a mutation loop.
     var bodyObserver = new MutationObserver(function(mutations){
       var structuralChange = mutations.some(function(m){
         return m.type === "childList" && m.addedNodes.length > 0;
@@ -147,7 +153,10 @@
 
     setInterval(function(){
       var timer = document.getElementById("pwPriceTimer");
-      if (timer) timer.textContent = formatCountdownToPriceChange();
+      if (timer && !timer.closest("header")) {
+        timer.textContent = formatCountdownToPriceChange();
+      }
+      removeHeaderPriceTimer();
     }, 1000);
   }
 
