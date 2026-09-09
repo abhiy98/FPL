@@ -88,6 +88,22 @@
     });
   }
 
+  function centerTableColumns(){
+    if (document.getElementById("ponytail-table-center-style")) return;
+    var style = document.createElement("style");
+    style.id = "ponytail-table-center-style";
+    style.textContent = [
+      "/* Ponytail: center the content inside each table column without changing sizing. */",
+      "thead th, tbody td { text-align: center; }",
+      "th button.sort-btn, th.num button.sort-btn { justify-content: center; }",
+      ".player-cell { justify-content: center; text-align: center; }",
+      ".player-cell .player-text { align-items: center; text-align: center; }",
+      ".player-meta { justify-content: center; }",
+      ".own-bar-wrap { justify-content: center; }"
+    ].join("\n");
+    document.head.appendChild(style);
+  }
+
   function loadPoints(){
     fetch("/fpl?path=bootstrap-static/", {cache:"no-store"}).then(function(res){
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -104,6 +120,7 @@
   }
 
   function boot(){
+    centerTableColumns();
     addTotalPointsHeader();
     movePriceTimer();
     loadPoints();
@@ -111,11 +128,15 @@
     setInterval(function(){
       movePriceTimer();
       addPointsCells();
+      centerTableColumns();
     }, 1000);
 
     var tbody = document.getElementById("tbody");
     if (tbody) {
-      var observer = new MutationObserver(function(){ addPointsCells(); });
+      var observer = new MutationObserver(function(){
+        addPointsCells();
+        centerTableColumns();
+      });
       observer.observe(tbody, {childList:true, subtree:true});
     }
   }
