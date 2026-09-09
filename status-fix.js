@@ -6,6 +6,7 @@
   var applying=false;
   var lastFetch=0;
   var FETCH_INTERVAL=5*60*1000;
+  var defaultStatusSort=true;
 
   function number(v){
     var n=Number(v);
@@ -54,6 +55,31 @@
     return "Unlikely to Change";
   }
 
+  function statusRank(status){
+    if(status==="Very Likely to Drop")return 1;
+    if(status==="Likely to Drop")return 2;
+    if(status==="Unlikely to Change")return 3;
+    if(status==="Likely to Rise")return 4;
+    if(status==="Very Likely to Rise")return 5;
+    return 99;
+  }
+
+  function applyDefaultStatusSort(){
+    if(!defaultStatusSort)return;
+    var tbody=document.getElementById("tbody");
+    if(!tbody)return;
+    var rows=Array.prototype.slice.call(tbody.querySelectorAll("tr[data-player-id]"));
+    rows.sort(function(a,b){
+      var ar=statusRank(statusFor(a.getAttribute("data-player-id")));
+      var br=statusRank(statusFor(b.getAttribute("data-player-id")));
+      if(ar!==br)return ar-br;
+      var an=(a.getAttribute("data-player-name")||"").toLowerCase();
+      var bn=(b.getAttribute("data-player-name")||"").toLowerCase();
+      return an.localeCompare(bn);
+    });
+    rows.forEach(function(row){tbody.appendChild(row);});
+  }
+
   function decorate(){
     if(applying)return;
     applying=true;
@@ -64,10 +90,13 @@
         var cell=tr.querySelector("td:nth-child(2)");
         if(!cell)return;
         var status=statusFor(id);
-        if(status==="—" || cell.textContent.trim()===status)return;
+        var nameCell=tr.querySelector(".player-name");
+        if(nameCell)tr.setAttribute("data-player-name",nameCell.textContent||"");
+        if(status==="—")return;
         var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
-        cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
+        if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
       });
+      applyDefaultStatusSort();
     }finally{
       applying=false;
     }
@@ -100,6 +129,10 @@
     var style=document.createElement("style");
     style.textContent=".pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.neutral{color:#c9b8d1;background:rgba(255,255,255,.06)}";
     document.head.appendChild(style);
+
+    document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){
+      btn.addEventListener("click",function(){defaultStatusSort=false;},{capture:true});
+    });
 
     var tbody=document.getElementById("tbody");
     if(tbody)new MutationObserver(function(){decorate();}).observe(tbody,{childList:true});
