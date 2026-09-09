@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+const root = process.cwd();
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const pwa = fs.readFileSync(path.join(root, "pwa-enhance.js"), "utf8");
 const headerBlock = html.match(/<thead>[\s\S]*?<\/thead>/);
 const headers = headerBlock ? (headerBlock[0].match(/<th\b/g) || []).length : 0;
 const headerHtml = headerBlock ? headerBlock[0] : "";
@@ -25,5 +27,10 @@ if (/class="pw-price-timer"/.test(html)) fail("header price-change timer still e
 if (!/tabindex="0" role="button"/.test(html)) fail("keyboard-accessible player rows are missing");
 if (!/version:2/.test(html)) fail("snapshot versioning is missing");
 if (!/\/team\?id=/.test(html)) fail("Cloudflare team endpoint is not used");
+
+if (!/window\.scrollY/.test(pwa) || !/window\.scrollX/.test(pwa)) fail("PWA scroll state must follow the document scroll position");
+if (/tableWrap\.scrollTop|tableWrap\.scrollLeft/.test(pwa)) fail("PWA state must not persist scroll from a non-scrolling table wrapper");
+if (!/priceStatusRank/.test(pwa) || !/defaultSort/.test(pwa)) fail("PWA default price-status sort restoration is missing");
+if (/status-fix\.js/.test(pwa)) fail("obsolete status fixer must not be referenced by PWA enhancement code");
 
 console.log("Price Watch build verification passed");
