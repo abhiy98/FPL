@@ -1,5 +1,5 @@
-var CACHE = "pricewatch-v12";
-var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
+var CACHE = "pricewatch-v14";
+var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png", "./pwa-enhance.js"];
 
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL); }));
@@ -7,11 +7,11 @@ self.addEventListener("install", function(e){
 });
 
 self.addEventListener("activate", function(e){
-  e.waitUntil(
-    caches.keys().then(function(keys){
-      return Promise.all(keys.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); }));
-    })
-  );
+  e.waitUntil((async function(){
+    var keys=await caches.keys();
+    await Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));
+    if("navigationPreload" in self.registration){try{await self.registration.navigationPreload.enable();}catch(e){}}
+  })());
   self.clients.claim();
 });
 
@@ -29,7 +29,7 @@ function isExternalData(url){
 }
 
 function isEnhancementScript(url){
-  return /\/(?:status-fix|jersey-fix|scroll-fix)\.js(?:\?|$)/.test(url);
+  return /\/(?:status-fix|jersey-fix|scroll-fix|pwa-enhance)\.js(?:\?|$)/.test(url);
 }
 
 async function injectEnhancements(response){
@@ -37,53 +37,54 @@ async function injectEnhancements(response){
   var type=response.headers.get("content-type") || "";
   if (type.indexOf("text/html") === -1) return response;
   var html=await response.text();
-  if (html.indexOf("pw-coldstart-style") === -1) html=html.replace(/<\/head>/i,'<style id="pw-coldstart-style">#tbody tr[data-player-id]{visibility:hidden!important}th.col-player button.sort-btn{justify-content:center!important}</style></head>');
   if (html.indexOf("/status-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
   if (html.indexOf("/jersey-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/jersey-fix.js"></script></body>');
   if (html.indexOf("/scroll-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/scroll-fix.js"></script></body>');
+  if (html.indexOf("/pwa-enhance.js") === -1) html=html.replace(/<\/body>/i,'<script src="/pwa-enhance.js"></script></body>');
   var headers=new Headers(response.headers);
   headers.delete("content-length");
   return new Response(html,{status:response.status,statusText:response.statusText,headers:headers});
 }
 
 self.addEventListener("fetch", function(e){
-  var url = e.request.url;
-  if (isExternalData(url)) return;
+  var url=e.request.url;
+  if(isExternalData(url))return;
 
-  if (isEnhancementScript(url)){
-    e.respondWith(fetch(e.request, { cache: "no-store" }));
-    return;
-  }
-
-  var isPageRequest = e.request.mode === "navigate" || url.indexOf("index.html") !== -1 || url.endsWith("/");
-  if (isPageRequest){
-    e.respondWith(
-      fetch(e.request, { cache: "no-store" }).then(function(res){
-        return injectEnhancements(res).then(function(finalRes){
-          if (finalRes.ok && e.request.method === "GET"){
-            var copy = finalRes.clone();
-            caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
-          }
-          return finalRes;
-        });
-      }).catch(function(){
-        return caches.match(e.request).then(function(cached){
-          return cached || caches.match("./index.html");
-        });
-      })
-    );
-    return;
-  }
-
-  e.respondWith(
-    caches.match(e.request).then(function(cached){
-      return cached || fetch(e.request).then(function(res){
-        if (e.request.method === "GET" && res.ok){
-          var copy = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
-        }
+  if(isEnhancementScript(url)){
+    e.respondWith(caches.match(e.request).then(function(cached){
+      return fetch(e.request,{cache:"no-store"}).then(function(res){
+        if(res.ok){var copy=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,copy);});}
         return res;
-      }).catch(function(){ return cached; });
-    })
-  );
+      }).catch(function(){return cached;});
+    }));
+    return;
+  }
+
+  var isPageRequest=e.request.mode==="navigate" || url.indexOf("index.html")!==-1 || url.endsWith("/");
+  if(isPageRequest){
+    e.respondWith((async function(){
+      var cached=await caches.match(e.request);
+      try{
+        var preload="";
+        if(e.preloadResponse){preload=await e.preloadResponse;}
+        var fresh=preload || await fetch(e.request,{cache:"no-store"});
+        var finalRes=await injectEnhancements(fresh);
+        if(finalRes.ok && e.request.method==="GET"){
+          var copy=finalRes.clone();
+          caches.open(CACHE).then(function(c){c.put(e.request,copy);});
+        }
+        return finalRes;
+      }catch(err){
+        return cached || caches.match("./index.html");
+      }
+    })());
+    return;
+  }
+
+  e.respondWith(caches.match(e.request).then(function(cached){
+    return cached || fetch(e.request).then(function(res){
+      if(e.request.method==="GET" && res.ok){var copy=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,copy);});}
+      return res;
+    }).catch(function(){return cached;});
+  }));
 });

@@ -1,13 +1,17 @@
 {
-  "name": "Price Watch — FPL Price Tracker",
-  "short_name": "Price Watch",
+  "id": "./",
+  "name": "FPL AY — Price Tracker",
+  "short_name": "FPL AY",
   "description": "Live Fantasy Premier League price change tracker",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
+  "lang": "en-GB",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#1c0025",
   "theme_color": "#1c0025",
   "orientation": "any",
+  "categories": ["sports", "utilities"],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
