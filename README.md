@@ -6,6 +6,7 @@
 - `worker.js` — Cloudflare Worker for the FPL, team and price-predictor APIs
 - `wrangler.jsonc` — Cloudflare Worker + static assets configuration
 - `scripts/patch-index.js` — deterministic build transformation and structural validation
+- `scripts/verify-build.js` — standalone build-output smoke test
 - `functions/` and `netlify/` — legacy deployment handlers retained for reference while Cloudflare is the primary deployment target
 
 ## Cloudflare deployment
@@ -13,7 +14,7 @@
 Cloudflare Workers is the primary deployment target. Set the Workers Build command to:
 
 ```text
-node scripts/patch-index.js
+node scripts/patch-index.js && node scripts/verify-build.js
 ```
 
 Then deploy with `npx wrangler deploy`.
@@ -22,7 +23,7 @@ The build step produces the final `index.html`; the Cloudflare Worker serves tha
 
 ## FPL data
 
-The app retrieves `bootstrap-static/` through `/fpl`, validates that the payload contains a complete player set, and polls every 3 minutes plus when the tab becomes visible. Price-change countdowns use UK midnight and are shown in the dashboard card.
+The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player payloads, and polls every 3 minutes plus when the tab becomes visible. The price-change countdown uses UK midnight and is shown only in the dashboard card.
 
 ## Columns
 
