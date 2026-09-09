@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v6";
+var CACHE = "pricewatch-v7";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
@@ -24,19 +24,20 @@ function isExternalData(url){
     /\/fpl(?:\?|$)/.test(url) ||
     /\/team(?:\?|$)/.test(url) ||
     /\/price-data(?:\?|$)/.test(url) ||
-    url.indexOf("livefpl.us/api/") !== -1;
+    url.indexOf("livefpl.us/api/") !== -1 ||
+    url.indexOf("resources.premierleague.com/premierleague/photos/") !== -1;
 }
 
-async function injectStatusFallback(response){
+async function injectEnhancements(response){
   if (!response || !response.ok) return response;
   var type=response.headers.get("content-type") || "";
   if (type.indexOf("text/html") === -1) return response;
   var html=await response.text();
-  if (html.indexOf("/status-fix.js") !== -1) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
-  var injected=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
+  if (html.indexOf("/status-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
+  if (html.indexOf("/jersey-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/jersey-fix.js"></script></body>');
   var headers=new Headers(response.headers);
   headers.delete("content-length");
-  return new Response(injected,{status:response.status,statusText:response.statusText,headers:headers});
+  return new Response(html,{status:response.status,statusText:response.statusText,headers:headers});
 }
 
 self.addEventListener("fetch", function(e){
@@ -47,7 +48,7 @@ self.addEventListener("fetch", function(e){
   if (isPageRequest){
     e.respondWith(
       fetch(e.request, { cache: "no-store" }).then(function(res){
-        return injectStatusFallback(res).then(function(finalRes){
+        return injectEnhancements(res).then(function(finalRes){
           if (finalRes.ok && e.request.method === "GET"){
             var copy = finalRes.clone();
             caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
