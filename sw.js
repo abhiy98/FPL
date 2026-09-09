@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v10";
+var CACHE = "pricewatch-v11";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
