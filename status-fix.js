@@ -6,7 +6,7 @@
   var applying=false;
   var lastFetch=0;
   var FETCH_INTERVAL=5*60*1000;
-  var defaultStatusSort=true;
+  var defaultProgressSort=true;
   var lastSortedOrder="";
 
   function number(v){
@@ -39,7 +39,7 @@
       if(id===null)return;
       var progress=normalise(item.progress!=null?item.progress:(item.progress_now!=null?item.progress_now:null));
       var predicted=normalise(item.progress_tonight!=null?item.progress_tonight:(item.predicted_progress!=null?item.predicted_progress:(item.predictedProgress!=null?item.predictedProgress:(item.prediction!=null?item.prediction:progress))));
-      if(predicted===null)return;
+      if(predicted===null && progress===null)return;
       next[String(Math.trunc(id))]={progress:progress,predicted:predicted};
     });
     if(Object.keys(next).length)dataById=next;
@@ -56,24 +56,23 @@
     return "Unlikely to Change";
   }
 
-  function statusRank(status){
-    if(status==="Very Likely to Drop")return 1;
-    if(status==="Likely to Drop")return 2;
-    if(status==="Unlikely to Change")return 3;
-    if(status==="Likely to Rise")return 4;
-    if(status==="Very Likely to Rise")return 5;
-    return 99;
+  function progressFor(id){
+    var row=dataById[String(id)];
+    return row && row.progress!==null && row.progress!==undefined ? row.progress : null;
   }
 
-  function applyDefaultStatusSort(){
-    if(!defaultStatusSort)return;
+  function applyDefaultProgressSort(){
+    if(!defaultProgressSort)return;
     var tbody=document.getElementById("tbody");
     if(!tbody)return;
     var rows=Array.prototype.slice.call(tbody.querySelectorAll("tr[data-player-id]"));
     rows.sort(function(a,b){
-      var ar=statusRank(statusFor(a.getAttribute("data-player-id")));
-      var br=statusRank(statusFor(b.getAttribute("data-player-id")));
-      if(ar!==br)return ar-br;
+      var av=progressFor(a.getAttribute("data-player-id"));
+      var bv=progressFor(b.getAttribute("data-player-id"));
+      if(av===null && bv===null){}
+      else if(av===null)return 1;
+      else if(bv===null)return -1;
+      else if(av!==bv)return av-bv;
       var an=(a.getAttribute("data-player-name")||"").toLowerCase();
       var bn=(b.getAttribute("data-player-name")||"").toLowerCase();
       return an.localeCompare(bn);
@@ -105,7 +104,7 @@
         var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
         if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
       });
-      applyDefaultStatusSort();
+      applyDefaultProgressSort();
     }finally{
       applying=false;
     }
@@ -140,7 +139,7 @@
     document.head.appendChild(style);
 
     document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){
-      btn.addEventListener("click",function(){defaultStatusSort=false;},{capture:true});
+      btn.addEventListener("click",function(){defaultProgressSort=false;lastSortedOrder="";},{capture:true});
     });
 
     var tbody=document.getElementById("tbody");
