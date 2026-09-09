@@ -102,6 +102,15 @@
     lastSortedOrder="";
   }
 
+  function removeWatchlistUI(){
+    var toggle=document.getElementById("watchlistOnly");
+    if(toggle)toggle.remove();
+    document.querySelectorAll(".watch-btn").forEach(function(btn){btn.remove();});
+    document.querySelectorAll(".pw-row-watch").forEach(function(row){row.classList.remove("pw-row-watch");});
+    var note=document.getElementById("pwTeamNote");
+    if(note)note.textContent="Favourites and your Team ID are saved locally on this device. No login is required.";
+  }
+
   function reveal(){
     var style=document.getElementById("pw-coldstart-style");
     if(style)style.remove();
@@ -111,6 +120,7 @@
     if(applying)return;
     applying=true;
     try{
+      removeWatchlistUI();
       document.querySelectorAll("#tbody tr[data-player-id]").forEach(function(tr){
         var id=tr.getAttribute("data-player-id");
         if(!id)return;
@@ -154,6 +164,7 @@
         return;
       }
     }catch(e){}
+    removeWatchlistUI();
     reveal();
   }
 
@@ -162,6 +173,7 @@
     style.textContent=".pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.neutral{color:#c9b8d1;background:rgba(255,255,255,.06)}";
     document.head.appendChild(style);
 
+    removeWatchlistUI();
     document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){
       btn.addEventListener("click",function(){defaultProgressSort=false;lastSortedOrder="";},{capture:true});
     });
