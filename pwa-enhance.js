@@ -27,9 +27,23 @@
     }
   }
 
+  function movePriceChangeFirst(){
+    var dashboard=document.getElementById("pwDashboard");
+    var top=dashboard && dashboard.querySelector(".pw-dashboard-top");
+    if(!top || !window.getComputedStyle(top).display) return;
+    var price=dashboard.querySelector("#pwDeadline");
+    var priceCard=price && price.closest(".pw-stat");
+    if(!priceCard || top.firstElementChild===priceCard) return;
+    top.insertBefore(priceCard,top.firstElementChild);
+  }
+
   function start(){
     applyPwaTableFixes();
-    var observer=new MutationObserver(function(){applyPwaTableFixes();});
+    movePriceChangeFirst();
+    var observer=new MutationObserver(function(){
+      applyPwaTableFixes();
+      movePriceChangeFirst();
+    });
     observer.observe(document.body,{childList:true,subtree:true});
   }
 
