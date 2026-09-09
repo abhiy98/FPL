@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v5";
+var CACHE = "pricewatch-v6";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
@@ -23,7 +23,20 @@ function isExternalData(url){
     url.indexOf("/.netlify/functions/") !== -1 ||
     /\/fpl(?:\?|$)/.test(url) ||
     /\/team(?:\?|$)/.test(url) ||
-    /\/price-data(?:\?|$)/.test(url);
+    /\/price-data(?:\?|$)/.test(url) ||
+    url.indexOf("livefpl.us/api/") !== -1;
+}
+
+async function injectStatusFallback(response){
+  if (!response || !response.ok) return response;
+  var type=response.headers.get("content-type") || "";
+  if (type.indexOf("text/html") === -1) return response;
+  var html=await response.text();
+  if (html.indexOf("/status-fix.js") !== -1) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
+  var injected=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
+  var headers=new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(injected,{status:response.status,statusText:response.statusText,headers:headers});
 }
 
 self.addEventListener("fetch", function(e){
@@ -34,11 +47,13 @@ self.addEventListener("fetch", function(e){
   if (isPageRequest){
     e.respondWith(
       fetch(e.request, { cache: "no-store" }).then(function(res){
-        if (res.ok && e.request.method === "GET"){
-          var copy = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
-        }
-        return res;
+        return injectStatusFallback(res).then(function(finalRes){
+          if (finalRes.ok && e.request.method === "GET"){
+            var copy = finalRes.clone();
+            caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+          }
+          return finalRes;
+        });
       }).catch(function(){
         return caches.match(e.request).then(function(cached){
           return cached || caches.match("./index.html");
