@@ -1,4 +1,4 @@
-var CACHE = "pricewatch-v14";
+var CACHE = "pricewatch-v15";
 var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png", "./pwa-enhance.js"];
 
 self.addEventListener("install", function(e){
@@ -29,7 +29,7 @@ function isExternalData(url){
 }
 
 function isEnhancementScript(url){
-  return /\/(?:status-fix|jersey-fix|scroll-fix|pwa-enhance)\.js(?:\?|$)/.test(url);
+  return /\/(?:jersey-fix|scroll-fix|pwa-enhance)\.js(?:\?|$)/.test(url);
 }
 
 async function injectEnhancements(response){
@@ -37,7 +37,6 @@ async function injectEnhancements(response){
   var type=response.headers.get("content-type") || "";
   if (type.indexOf("text/html") === -1) return response;
   var html=await response.text();
-  if (html.indexOf("/status-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
   if (html.indexOf("/jersey-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/jersey-fix.js"></script></body>');
   if (html.indexOf("/scroll-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/scroll-fix.js"></script></body>');
   if (html.indexOf("/pwa-enhance.js") === -1) html=html.replace(/<\/body>/i,'<script src="/pwa-enhance.js"></script></body>');
