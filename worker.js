@@ -1,48 +1,189 @@
-const FPL_API="https://fantasy.premierleague.com/api/";
-const PRICE_PREDICTOR_API="https://livefpl.us/api/prices.json";
-const JSON_HEADERS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Content-Type":"application/json"};
-const FETCH_HEADERS={"User-Agent":"Mozilla/5.0 (compatible; PriceWatch/1.0)","Accept":"application/json"};
-function json(body,status=200,extra={}){return new Response(JSON.stringify(body),{status,headers:{...JSON_HEADERS,...extra}});}
-async function fplJson(path){const response=await fetch(FPL_API+path,{headers:FETCH_HEADERS});if(!response.ok)throw new Error("FPL returned HTTP "+response.status);return response.json();}
-async function handleFpl(url){const requestedPath=String(url.searchParams.get("path")||"bootstrap-static/").replace(/^https?:\/\/[^/]+\/api\//i,"").replace(/^\/+/,"");const allowed=/^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/event\/\d+\/picks\/?)$/;if(!allowed.test(requestedPath))return json({error:"Unsupported FPL API path"},400);try{const response=await fetch(FPL_API+requestedPath,{headers:FETCH_HEADERS});const body=await response.text();return new Response(body,{status:response.status,headers:{...JSON_HEADERS,"Cache-Control":requestedPath==="bootstrap-static/"?"public, max-age=60":"public, max-age=30"}});}catch(error){return json({error:String(error)},502);}}
-async function handlePriceData(){try{const response=await fetch(PRICE_PREDICTOR_API,{headers:{...FETCH_HEADERS,"Cache-Control":"no-cache"}});if(!response.ok)throw new Error("Price predictor returned HTTP "+response.status);const raw=await response.json();const source=raw&&raw.players?raw.players:raw;const players={};Object.keys(source||{}).forEach((id)=>{const item=source[id]||{};const predicted=Number(item.progress_tonight);players[String(id)]={progress:Number.isFinite(Number(item.progress))?Number(item.progress):null,predictedProgress:Number.isFinite(predicted)?predicted:null};});return json({players},200,{"Cache-Control":"public, max-age=60"});}catch(error){return json({error:String(error),players:{}},502);}}
-async function handleTeam(url){const id=Number.parseInt(url.searchParams.get("id")||"",10);if(!Number.isInteger(id)||id<=0)return json({error:"Invalid FPL team id"},400);try{const entry=await fplJson("entry/"+id+"/");const currentGameweek=Number.parseInt(String(entry.current_event||""),10);if(!Number.isInteger(currentGameweek)||currentGameweek<1)throw new Error("FPL team has no current gameweek");let picks=[],gameweek=currentGameweek;try{const current=await fplJson("entry/"+id+"/event/"+currentGameweek+"/picks/");picks=Array.isArray(current.picks)?current.picks:[];}catch(_){ }if(!picks.length&&currentGameweek>1){try{const previous=await fplJson("entry/"+id+"/event/"+(currentGameweek-1)+"/picks/");picks=Array.isArray(previous.picks)?previous.picks:[];if(picks.length)gameweek=currentGameweek-1;}catch(_){ }}if(picks.length!==15)throw new Error("FPL returned "+picks.length+" players instead of 15");return json({id,name:entry.name||"",value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,currentGameweek,gameweek,picks:picks.map((pick)=>Number(pick.element))},200,{"Cache-Control":"public, max-age=30"});}catch(error){return json({error:String(error)},502);}}
-async function serveAsset(request,env){const response=await env.ASSETS.fetch(request);const url=new URL(request.url);const contentType=response.headers.get("content-type")||"";if(!contentType.includes("text/html")||(url.pathname!=="/"&&!url.pathname.endsWith(".html")))return response;let html=await response.text();const proxyFrom='    { build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } },';const proxyTo='    { build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },';html=html.replace(proxyFrom,proxyTo);html=html.replace(/<!-- pricewatch:team-ui-fix -->[\s\S]*?<\/script>/g,"");
-const marker='  var risersOnly = document.getElementById("risersOnly");';
-const injected=marker+`
-var myTeamOnlyChip=document.getElementById('myTeamOnly');
-if(myTeamOnlyChip&&!myTeamOnlyChip.__pwBound){myTeamOnlyChip.__pwBound=true;myTeamOnlyChip.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();state.myTeamOnly=!state.myTeamOnly;myTeamOnlyChip.classList.toggle('active',state.myTeamOnly);render();},true);}
-var clearTeamButton=document.getElementById('pwClearTeam');
-if(clearTeamButton&&!clearTeamButton.__pwBound){clearTeamButton.__pwBound=true;clearTeamButton.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();state.team=null;state.myTeamOnly=false;clearTeamButton.style.display='none';if(myTeamOnlyChip)myTeamOnlyChip.classList.remove('active');try{localStorage.removeItem(STORE_KEY_TEAM);}catch(_){ }var input=document.getElementById('pwTeamId');if(input)input.value='';render();showToast('Team cleared');},true);}
-var pwPredictorData=null;var pwPredictorLoading=false;var pwNormalizeQueued=false;
-function pwStatusFor(player){var item=pwPredictorData&&pwPredictorData[String(player.id)];var predicted=item&&Number.isFinite(item.predictedProgress)?item.predictedProgress:null;if(!Number.isFinite(predicted))return{text:'—',cls:'neutral',rank:0};var pct=predicted*100;if(pct<0){if(pct<=-100)return{text:'Very Likely to Drop',cls:'drop',rank:5};if(pct<=-80)return{text:'Likely to Drop',cls:'drop',rank:4};return{text:'Unlikely to Drop',cls:'neutral',rank:3};}if(pct>=100)return{text:'Very Likely to Rise',cls:'rise',rank:5};if(pct>=80)return{text:'Likely to Rise',cls:'rise',rank:4};return{text:'Unlikely to Rise',cls:'neutral',rank:3};}
-function statusMarkup(player){var s=pwStatusFor(player);player.priceStatusRank=s.rank;return '<span class="pw-status '+s.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(s.text)+'</span>';}
-function sortIconHtml(){return '<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span>';}
-function setHeader(th,key,label,isName){th.className=isName?'col-player':'num';th.setAttribute('data-key',key);th.innerHTML='<button class="sort-btn">'+label+sortIconHtml()+'</button>';return th;}
-function headerKey(th){var key=th.getAttribute('data-key');var label=th.textContent.trim();if(key==='name'||/^player$/i.test(label))return'name';if(key==='status'||key==='priceStatusRank'||/^status$/i.test(label))return'status';if(key==='gw1'||/GW1 price/i.test(label))return'gw1';if(key==='now'||/^current$/i.test(label))return'now';if(key==='total'||/Total Δ/i.test(label))return'total';if(key==='event'||/This GW/i.test(label))return'event';if(key==='points'||/Total Points/i.test(label))return'points';if(key==='own'||/^owned$/i.test(label))return'own';return'';}
-function normalizeTable(){
-  if(pwNormalizeQueued)return;pwNormalizeQueued=true;
-  setTimeout(function(){
-    pwNormalizeQueued=false;
-    var table=document.querySelector('table'),headerRow=table&&table.querySelector('thead tr'),body=document.getElementById('tbody');if(!table||!headerRow||!body)return;
-    var expected=['name','status','gw1','now','total','event','points','own'];
-    var headers=Array.prototype.slice.call(headerRow.children),keys=headers.map(headerKey);
-    var goodHeader=headers.length===8&&keys.every(function(k,i){return k===expected[i];});
-    var indexByKey={};headers.forEach(function(th,i){indexByKey[headerKey(th)]=i;});
-    if(!goodHeader){
-      function header(label,key,isName){return setHeader(document.createElement('th'),key,label,isName);}
-      headerRow.replaceChildren.apply(headerRow,[header('Player','name',true),header('Status','priceStatusRank',false),header('GW1 price','gw1',false),header('Current','now',false),header('Total Δ','total',false),header('This GW','event',false),header('Total Points','points',false),header('Owned','own',false)]);
-    }
-    Array.prototype.slice.call(body.querySelectorAll('tr[data-player-id]')).forEach(function(row){
-      var cells=Array.prototype.slice.call(row.children),id=Number(row.getAttribute('data-player-id')),player=state.players.find(function(p){return Number(p.id)===id;});if(!player)return;
-      if(cells.length===8&&cells[1]&&cells[1].querySelector('.pw-status')){cells[1].innerHTML=statusMarkup(player);cells[6].textContent=String(player.points||0);return;}
-      var cell=function(key){var index=indexByKey[key];return Number.isInteger(index)?(cells[index]||null):null;};
-      var nameCell=cell('name')||cells[0],gw1Cell=cell('gw1'),nowCell=cell('now'),totalCell=cell('total'),eventCell=cell('event'),ownCell=cell('own'),pointsCell=cell('points')||document.createElement('td');if(!nameCell||!gw1Cell||!nowCell||!totalCell||!eventCell||!ownCell)return;
-      var statusCell=document.createElement('td');statusCell.className='num';statusCell.innerHTML=statusMarkup(player);pointsCell.className='num';pointsCell.textContent=String(player.points||0);row.replaceChildren(nameCell,statusCell,gw1Cell,nowCell,totalCell,eventCell,pointsCell,ownCell);
-    });
-  },0);
+const FPL_API = "https://fantasy.premierleague.com/api/";
+const PRICE_PREDICTOR_APIS = [
+  "https://livefpl.us/api/prices.json",
+  "https://www.livefpl.net/api/prices.json"
+];
+const JSON_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json"
+};
+const FETCH_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (compatible; PriceWatch/1.0)",
+  "Accept": "application/json, text/plain, */*",
+  "Referer": "https://www.livefpl.net/prices"
+};
+
+function json(body, status = 200, extra = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...JSON_HEADERS, ...extra }
+  });
 }
-async function loadPricePredictor(){if(pwPredictorLoading)return;pwPredictorLoading=true;try{var res=await fetch('/price-data',{cache:'no-store'});var data=await res.json();if(res.ok&&data&&data.players)pwPredictorData=data.players;}catch(_){ }finally{pwPredictorLoading=false;normalizeTable();}}
-if(!window.__pwPricePredictorBound){window.__pwPricePredictorBound=true;var pwObserver=new MutationObserver(function(){normalizeTable();});var pwTable=document.querySelector('table');if(pwTable)pwObserver.observe(pwTable,{childList:true,subtree:true});document.addEventListener('click',function(e){if(e.target.closest('th[data-key]'))setTimeout(normalizeTable,0);},true);setTimeout(loadPricePredictor,0);setInterval(loadPricePredictor,15*60*1000);setTimeout(normalizeTable,0);}`;
-if(html.includes(marker)&&!html.includes("window.__pwPricePredictorBound"))html=html.replace(marker,injected);return new Response(html,{status:response.status,headers:response.headers});}
-export default{async fetch(request,env){const url=new URL(request.url);if(url.pathname==="/fpl"||url.pathname==="/.netlify/functions/fpl")return handleFpl(url);if(url.pathname==="/price-data")return handlePriceData();if(url.pathname==="/team")return handleTeam(url);return serveAsset(request,env);}};
+
+async function fplJson(path) {
+  const response = await fetch(FPL_API + path, { headers: FETCH_HEADERS });
+  if (!response.ok) throw new Error("FPL returned HTTP " + response.status);
+  return response.json();
+}
+
+async function handleFpl(url) {
+  const requestedPath = String(url.searchParams.get("path") || "bootstrap-static/")
+    .replace(/^https?:\/\/[^/]+\/api\//i, "")
+    .replace(/^\/+/, "");
+  const allowed = /^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/event\/\d+\/picks\/?)$/;
+  if (!allowed.test(requestedPath)) return json({ error: "Unsupported FPL API path" }, 400);
+
+  try {
+    const response = await fetch(FPL_API + requestedPath, { headers: FETCH_HEADERS });
+    const body = await response.text();
+    return new Response(body, {
+      status: response.status,
+      headers: {
+        ...JSON_HEADERS,
+        "Cache-Control": requestedPath === "bootstrap-static/" ? "public, max-age=60" : "public, max-age=30"
+      }
+    });
+  } catch (error) {
+    return json({ error: String(error) }, 502);
+  }
+}
+
+function normalisePercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.abs(n) > 5 ? n / 100 : n;
+}
+
+function officialPriceRecord(player) {
+  const projections = Array.isArray(player.price_change_projections) ? player.price_change_projections : [];
+  const first = projections.length ? projections[0] : null;
+  const progress = normalisePercent(player.price_change_percent);
+  const predictedProgress = first ? normalisePercent(first.projected_percent) : progress;
+  const likelihood = first && Number.isFinite(Number(first.likelihood)) ? Number(first.likelihood) : null;
+  return { progress, predictedProgress, likelihood };
+}
+
+function normalisePredictor(source) {
+  const players = {};
+  const records = Array.isArray(source)
+    ? source.map((item) => [item && (item.id ?? item.element_id ?? item.player_id), item])
+    : Object.entries(source || {});
+
+  records.forEach(([key, item]) => {
+    if (!item || typeof item !== "object") return;
+    const id = Number(item.id ?? item.element_id ?? item.player_id ?? key);
+    if (!Number.isInteger(id) || id <= 0) return;
+    const progress = normalisePercent(
+      item.progress ?? item.progress_now ?? item.current_progress ?? item.progress_now_pct
+    );
+    const predictedProgress = normalisePercent(
+      item.progress_tonight ?? item.predicted_progress ?? item.predictedProgress ?? item.prediction ?? progress
+    );
+    const likelihood = Number.isFinite(Number(item.likelihood)) ? Number(item.likelihood) : null;
+    if (progress === null && predictedProgress === null) return;
+    players[String(id)] = { progress, predictedProgress, likelihood };
+  });
+
+  return players;
+}
+
+async function handlePriceData() {
+  // LiveFPL exposes the exact progress/prediction fields used by its predictor table.
+  let lastError = null;
+  for (const endpoint of PRICE_PREDICTOR_APIS) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { ...FETCH_HEADERS, "Cache-Control": "no-cache" }
+      });
+      if (!response.ok) throw new Error(endpoint + " returned HTTP " + response.status);
+      const raw = await response.json();
+      const source = raw && raw.players ? raw.players : raw && raw.data ? raw.data : raw;
+      const players = normalisePredictor(source);
+      if (Object.keys(players).length) {
+        return json({ players, source: endpoint }, 200, { "Cache-Control": "public, max-age=60" });
+      }
+      lastError = new Error(endpoint + " returned no predictor records");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  // Official FPL data remains a fallback when the dedicated predictor is unavailable.
+  try {
+    const bootstrap = await fplJson("bootstrap-static/");
+    const players = {};
+    for (const player of bootstrap.elements || []) {
+      const record = officialPriceRecord(player);
+      if (record.progress !== null || record.predictedProgress !== null) {
+        players[String(player.id)] = record;
+      }
+    }
+    if (Object.keys(players).length) {
+      return json({ players, source: "fpl-bootstrap" }, 200, { "Cache-Control": "public, max-age=60" });
+    }
+  } catch (error) {
+    lastError = error;
+  }
+
+  return json(
+    { error: String(lastError || "Price predictor unavailable"), players: {} },
+    502,
+    { "Cache-Control": "no-store" }
+  );
+}
+
+async function handleTeam(url) {
+  const id = Number.parseInt(url.searchParams.get("id") || "", 10);
+  if (!Number.isInteger(id) || id <= 0) return json({ error: "Invalid FPL team id" }, 400);
+
+  try {
+    const entry = await fplJson("entry/" + id + "/");
+    const currentGameweek = Number.parseInt(String(entry.current_event || ""), 10);
+    if (!Number.isInteger(currentGameweek) || currentGameweek < 1) {
+      throw new Error("FPL team has no current gameweek");
+    }
+
+    let picks = [];
+    let gameweek = currentGameweek;
+
+    try {
+      const current = await fplJson("entry/" + id + "/event/" + currentGameweek + "/picks/");
+      picks = Array.isArray(current.picks) ? current.picks : [];
+    } catch (_) {}
+
+    if (!picks.length && currentGameweek > 1) {
+      try {
+        const previous = await fplJson("entry/" + id + "/event/" + (currentGameweek - 1) + "/picks/");
+        picks = Array.isArray(previous.picks) ? previous.picks : [];
+        if (picks.length) gameweek = currentGameweek - 1;
+      } catch (_) {}
+    }
+
+    if (picks.length !== 15) {
+      throw new Error("FPL returned " + picks.length + " players instead of 15");
+    }
+
+    return json({
+      id,
+      name: entry.name || "",
+      value: entry.last_deadline_value || entry.value || 0,
+      bank: entry.last_deadline_bank || entry.bank || 0,
+      currentGameweek,
+      gameweek,
+      picks: picks.map((pick) => Number(pick.element))
+    }, 200, { "Cache-Control": "public, max-age=30" });
+  } catch (error) {
+    return json({ error: String(error) }, 502);
+  }
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname === "/fpl" || url.pathname === "/.netlify/functions/fpl") return handleFpl(url);
+    if (url.pathname === "/price-data") return handlePriceData();
+    if (url.pathname === "/team") return handleTeam(url);
+    return env.ASSETS.fetch(request);
+  }
+};

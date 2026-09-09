@@ -1,5 +1,5 @@
-var CACHE = "pricewatch-v4";
-var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png", "./ui-fixes.js"];
+var CACHE = "pricewatch-v8";
+var SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL); }));
@@ -22,18 +22,23 @@ function isExternalData(url){
     url.indexOf("codetabs.com") !== -1 ||
     url.indexOf("/.netlify/functions/") !== -1 ||
     /\/fpl(?:\?|$)/.test(url) ||
-    /\/team(?:\?|$)/.test(url);
+    /\/team(?:\?|$)/.test(url) ||
+    /\/price-data(?:\?|$)/.test(url) ||
+    url.indexOf("livefpl.us/api/") !== -1 ||
+    url.indexOf("resources.premierleague.com/premierleague/photos/") !== -1;
 }
 
-function injectUiFixes(response){
-  return response.text().then(function(html){
-    var tag = '<script src="./ui-fixes.js"></script>';
-    if (html.indexOf(tag) !== -1) return new Response(html, {headers: response.headers});
-    var injected = html.replace(/<\/head>/i, tag + "</head>");
-    var headers = new Headers(response.headers);
-    headers.set("content-type", "text/html; charset=utf-8");
-    return new Response(injected, {status: response.status, statusText: response.statusText, headers: headers});
-  });
+async function injectEnhancements(response){
+  if (!response || !response.ok) return response;
+  var type=response.headers.get("content-type") || "";
+  if (type.indexOf("text/html") === -1) return response;
+  var html=await response.text();
+  if (html.indexOf("/status-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/status-fix.js"></script></body>');
+  if (html.indexOf("/jersey-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/jersey-fix.js"></script></body>');
+  if (html.indexOf("/scroll-fix.js") === -1) html=html.replace(/<\/body>/i,'<script src="/scroll-fix.js"></script></body>');
+  var headers=new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(html,{status:response.status,statusText:response.statusText,headers:headers});
 }
 
 self.addEventListener("fetch", function(e){
@@ -44,15 +49,16 @@ self.addEventListener("fetch", function(e){
   if (isPageRequest){
     e.respondWith(
       fetch(e.request, { cache: "no-store" }).then(function(res){
-        if (res.ok){
-          var copy = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
-          return injectUiFixes(res);
-        }
-        return res;
+        return injectEnhancements(res).then(function(finalRes){
+          if (finalRes.ok && e.request.method === "GET"){
+            var copy = finalRes.clone();
+            caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+          }
+          return finalRes;
+        });
       }).catch(function(){
         return caches.match(e.request).then(function(cached){
-          return cached ? injectUiFixes(cached) : caches.match("./index.html").then(function(fallback){ return fallback ? injectUiFixes(fallback) : fallback; });
+          return cached || caches.match("./index.html");
         });
       })
     );

@@ -2,176 +2,63 @@ const fs = require("fs");
 const path = require("path");
 
 const file = path.join(process.cwd(), "index.html");
-let text = fs.readFileSync(file, "utf8");
+let html = fs.readFileSync(file, "utf8");
 
-function replaceIfPresent(label, from, to) {
-  if (text.includes(from)) {
-    text = text.replace(from, to);
-    console.log(`Patched: ${label}`);
-  } else {
-    console.log(`Already patched/not needed: ${label}`);
-  }
+function mustReplace(label, pattern, replacement) {
+  if (!pattern.test(html)) throw new Error(`Build patch failed: ${label}`);
+  html = html.replace(pattern, replacement);
 }
 
-replaceIfPresent(
-  "server function proxy",
-  '    { build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } },',
-  '    { build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },'
+// Canonical Cloudflare API path.
+mustReplace(
+  "FPL proxy",
+  /\{ build: function\(u\)\{ return "\/\.netlify\/functions\/fpl"; \}, parse: function\(res\)\{ return res\.json\(\); \} \},/,
+  '{ build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },'
 );
 
-replaceIfPresent(
-  "bootstrap completeness validation",
-  '        if (!data || !data.elements || !data.elements.length) throw new Error("Unexpected payload");',
-  '        if (!data || !data.elements || data.elements.length < 300) throw new Error("Incomplete player payload");'
+// The dashboard owns the countdown; never render a header timer.
+html = html.replace(/\s*<div class="pw-price-timer">[\s\S]*?<\/div>/g, "");
+html = html.replace(/\s*\.pw-price-timer\{[^}]*\}/g, "");
+mustReplace(
+  "dashboard card",
+  /<div class="pw-stat"><div class="label">Deadline<\/div><div class="value" id="pwDeadline">[\s\S]*?<\/div><div class="hint">next gameweek lock<\/div><\/div>/,
+  '<div class="pw-stat"><div class="label">Price change</div><div class="value" id="pwDeadline">—</div><div class="hint">next price change</div></div>'
 );
 
-const oldTeam = `  async function loadMyTeam(){
-    var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
-    var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
-    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''}; try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
-  }`;
+// Table schema is fixed here so headers and rows cannot drift.
+mustReplace("table headers", /<thead>[\s\S]*?<\/thead>/, `    <thead>\n      <tr>\n        <th class="col-player" data-key="name"><button class="sort-btn">Player<span class="sort-arrows"></span></button></th>\n        <th data-key="priceStatusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"></span></button></th>\n        <th data-key="priceProgress" class="num"><button class="sort-btn">Progress %<span class="sort-arrows"></span></button></th>\n        <th data-key="pricePrediction" class="num"><button class="sort-btn">Prediction %<span class="sort-arrows"></span></button></th>\n        <th data-key="gw1" class="num"><button class="sort-btn">GW1 price<span class="sort-arrows"></span></button></th>\n        <th data-key="now" class="num"><button class="sort-btn">Current<span class="sort-arrows"></span></button></th>\n        <th data-key="total" class="num"><button class="sort-btn">Total Δ<span class="sort-arrows"></span></button></th>\n        <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"></span></button></th>\n        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"></span></button></th>\n        <th data-key="own" class="num"><button class="sort-btn">Owned<span class="sort-arrows"></span></button></th>\n      </tr>\n    </thead>`);
 
-const newTeam = `  async function loadMyTeam(){
-    var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
-    var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
-    try{
-      var res=await fetchWithTimeout('/team?id='+encodeURIComponent(id),10000);
-      var data=await res.json();
-      if(!res.ok || !data || !Array.isArray(data.picks) || data.picks.length !== 15) throw new Error(data && data.error ? data.error : 'Expected 15 players');
-      state.team={id:id,picks:new Set(data.picks.map(function(x){return Number(x);})),value:data.value||0,bank:data.bank||0,name:data.name||''};
-      try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){}
-      state.myTeamOnly=true;
-      var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');
-      showToast('My team loaded · GW '+(data.gameweek||data.currentGameweek||'—'));
-      render();
-    }catch(e){var note=document.getElementById('pwTeamNote');if(note)note.textContent='Team error: '+(e&&e.message?e.message:'Unable to load team');showToast('Couldn\\'t load my team');}
-    finally{button.disabled=false;button.textContent='Load my team';}
-  }`;
+mustReplace("skeleton", /<tbody id="tbody">[\s\S]*?<\/tbody>/, `    <tbody id="tbody">\n      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:110px"></div></td><td><div class="skeleton" style="width:50px;margin:auto"></div></td><td><div class="skeleton" style="width:42px;margin:auto"></div></td><td><div class="skeleton" style="width:48px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td></tr>\n      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:90px"></div></td><td><div class="skeleton" style="width:50px;margin:auto"></div></td><td><div class="skeleton" style="width:42px;margin:auto"></div></td><td><div class="skeleton" style="width:48px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td><td><div class="skeleton" style="width:36px;margin:auto"></div></td></tr>\n    </tbody>`);
 
-if (text.includes(oldTeam)) {
-  text = text.replace(oldTeam, newTeam);
-  console.log("Patched: My Team loader");
-} else {
-  console.log("Already patched/not needed: My Team loader");
-}
+mustReplace("numeric alignment", /td\.num\{text-align:right;/, "td.num{text-align:center;");
+mustReplace("header alignment", /th\.num button\.sort-btn\{justify-content:flex-end;\}/, "th.num button.sort-btn{justify-content:center;}");
+mustReplace("ownership alignment", /\.own-bar-wrap\{display:flex;align-items:center;justify-content:flex-end;/, ".own-bar-wrap{display:flex;align-items:center;justify-content:center;");
+mustReplace("player alignment", /\.player-cell\{display:flex;align-items:center;gap:9px;/, ".player-cell{display:flex;align-items:center;justify-content:center;gap:9px;");
 
-const oldClear = "  document.getElementById('pwClearTeam').addEventListener('click',function(){state.team=null;try{localStorage.removeItem(STORE_KEY_TEAM);}catch(e){}var input=document.getElementById('pwTeamId');if(input)input.value='';render();showToast('Team cleared');});";
-const newClear = "  document.getElementById('pwClearTeam').addEventListener('click',function(){state.team=null;state.myTeamOnly=false;try{localStorage.removeItem(STORE_KEY_TEAM);}catch(e){}var input=document.getElementById('pwTeamId');if(input)input.value='';var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.remove('active');render();showToast('Team cleared');});";
-replaceIfPresent("clear team behavior", oldClear, newClear);
+// Add the official daily price-change countdown (00:00 Europe/London).
+mustReplace("price countdown", /  function renderDashboard\(\)\{/, `  function londonOffsetMinutes(at){var ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(at),v={};ps.forEach(function(p){v[p.type]=p.value;});return (Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute,+v.second)-at.getTime())/60000;}\n  function formatPriceChangeCountdown(){var now=new Date(),ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now),v={};ps.forEach(function(p){v[p.type]=p.value;});var targetBase=Date.UTC(+v.year,+v.month-1,+v.day+1,0,0,0),target=targetBase-londonOffsetMinutes(now)*60000;target=targetBase-londonOffsetMinutes(new Date(target))*60000;var diff=Math.max(0,target-now.getTime()),total=Math.floor(diff/1000),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60;return h+'h '+String(m).padStart(2,'0')+'m '+String(s).padStart(2,'0')+'s';}\n\n  function renderDashboard(){`);
 
-// Remove the legacy Favourites feature from the generated HTML.
-text = text.replace(/\s*<div class="pos-chip" id="favoritesOnly">★ Favourites<\/div>/g, "");
-text = text.replace(/\s*#favoritesOnly\{[^}]*\}\n\s*#favoritesOnly\.active\{[^}]*\}\n/g, "\n");
-text = text.replace(/\s*\.fav-btn\{[\s\S]*?\.fav-btn\.active\{[^}]*\}\n/g, "\n");
-text = text.replace(/\s*var STORE_KEY_FAVS = "pricewatch:favs";\n/g, "\n");
-text = text.replace(/\s*function loadFavs\(\)\{[\s\S]*?\n  \}\n\n  function saveFavs\(favSet\)\{[\s\S]*?\n  \}\n/g, "\n");
-text = text.replace(/\s*favoritesOnly: false,\n/g, "\n");
-text = text.replace(/\s*favs: loadFavs\(\),/g, "");
-text = text.replace(/\s*if \(state\.favoritesOnly && !state\.favs\.has\(p\.id\)\) return false;\n/g, "");
-text = text.replace(/\s*var favChip = e\.target\.closest\("#favoritesOnly"\);\n\s*if \(favChip\)\{[\s\S]*?\n\s*\}\n/g, "\n");
-text = text.replace(/\s*function toggleFavourite\(id\)\{[^}]*\}\n/g, "\n");
-text = text.replace(/\s*var fav=e\.target\.closest\('\.fav-btn'\); if\(fav\)\{toggleFavourite\(parseInt\(fav\.getAttribute\('data-fav-id'\),10\)\);return;\}\n/g, "\n");
-text = text.replace(/<button class="fav-btn' \+ \(isFav \? ' active' : ''\) \+ '" data-fav-id="' \+ p\.id \+ '" aria-label="Toggle favourite">' \+ \(isFav \? '★' : '☆'\) \+ '<\/button>/g, "");
-text = text.replace(/\s*var isFav = state\.favs\.has\(p\.id\), isWatch =/g, " var isWatch =");
-text = text.replace(/\s*<button class="pw-btn" id="pwModalFav">'\+\(state\.favs\.has\(p\.id\)\?'★ Favourite':'☆ Favourite'\)\+'<\/button>/g, "");
-text = text.replace(/\s*document\.getElementById\('pwModalFav'\)\.addEventListener\('click',function\(\)\{toggleFavourite\(p\.id\);this\.textContent=state\.favs\.has\(p\.id\)?'★ Favourite':'☆ Favourite';\}\);/g, "");
+// Predictor values are loaded independently of the player table and accept numeric or string JSON values.
+mustReplace("predictor anchor", /  var tbody = document\.getElementById\("tbody"\);/, m => `${m}\n  var pricePredictorData={};\n  var pricePredictorLoading=false;\n  var LIVE_PRICE_PREDICTOR_URL='https://livefpl.us/api/prices.json';\n  function predictorNumber(value){var n=Number(value);return Number.isFinite(n)?n:null;}\n  function predictorNormalise(value){var n=predictorNumber(value);if(n===null)return null;return Math.abs(n)>5?n/100:n;}\n  function pricePercent(value){var n=predictorNormalise(value);if(n===null)return '—';var pct=n*100;var rounded=Math.round(pct*10)/10;return (rounded>0?'+':'')+rounded.toFixed(1)+'%';}\n  function priceMetric(p,key){var x=pricePredictorData[String(p.id)];if(!x)return null;var n=predictorNumber(x[key]);return predictorNormalise(n);}\n  function priceStatus(p){var v=priceMetric(p,'predictedProgress');if(v==null)return{text:'—',cls:'neutral',rank:0};v*=100;if(v>=100)return{text:'Very Likely to Rise',cls:'rise',rank:5};if(v>=80)return{text:'Likely to Rise',cls:'rise',rank:4};if(v<=-100)return{text:'Very Likely to Drop',cls:'drop',rank:5};if(v<=-80)return{text:'Likely to Drop',cls:'drop',rank:4};return{text:'Unlikely to Change',cls:'neutral',rank:1};}\n  function priceStatusMarkup(p){var s=priceStatus(p);p.priceStatusRank=s.rank;return '<span class="pw-status '+s.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(s.text)+'</span>'; }\n  function pricePercentMarkup(p,key){var value=priceMetric(p,key);if(value===null)return '—';var pct=value*100;var cls=pct>0?'rise':pct<0?'drop':'neutral';return '<span class="pw-percent '+cls+'">'+escapeHtml(pricePercent(value))+'</span>'; }\n  function normalisePredictorPayload(source){var out={};if(!source||typeof source!=='object')return out;Object.entries(source.players||source.data||source).forEach(function(pair){var key=pair[0],item=pair[1];if(!item||typeof item!=='object')return;var id=predictorNumber(item.id!=null?item.id:(item.element_id!=null?item.element_id:(item.player_id!=null?item.player_id:key)));if(id===null)return;var progress=predictorNormalise(item.progress!=null?item.progress:(item.progress_now!=null?item.progress_now:item.current_progress));var predicted=predictorNormalise(item.progress_tonight!=null?item.progress_tonight:(item.predicted_progress!=null?item.predicted_progress:(item.predictedProgress!=null?item.predictedProgress:item.prediction)));if(progress!==null||predicted!==null)out[String(Math.trunc(id))]={progress:progress,predictedProgress:predicted};});return out;}\n  async function loadPricePredictor(){if(pricePredictorLoading)return;pricePredictorLoading=true;try{var loaded=false;try{var r=await fetchWithTimeout('/price-data?ts='+Date.now(),8000);if(r.ok){var d=await r.json();var mapped=normalisePredictorPayload(d);if(Object.keys(mapped).length){pricePredictorData=mapped;loaded=true;}}}catch(e){}if(!loaded){var direct=await fetchWithTimeout(LIVE_PRICE_PREDICTOR_URL+'?ts='+Date.now(),8000);if(direct.ok){pricePredictorData=normalisePredictorPayload(await direct.json());}}}catch(e){}finally{pricePredictorLoading=false;render();}}`);
 
-// Add the price-change countdown directly to the main header.
-replaceIfPresent(
-  "price change timer markup",
-  '  </div>\n\n  <div class="search-row">',
-  '  </div>\n  <div class="pw-price-timer"><span>Price change</span><strong id="pwPriceTimer">--:--:--</strong></div>\n\n  <div class="search-row">'
-);
+mustReplace("predictor css", /<\/style>/, `.pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.neutral{color:var(--text-dim);background:rgba(255,255,255,.06)}.pw-percent{font-weight:700;white-space:nowrap}.pw-percent.rise{color:#00ff85}.pw-percent.drop{color:#ff3b5c}.pw-percent.neutral{color:var(--text-dim)}\n</style>`);
 
-replaceIfPresent(
-  "price change timer styles",
-  '</style>',
-  '.pw-price-timer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px;padding:7px 10px;background:var(--panel);border:1px solid var(--line);border-radius:8px}.pw-price-timer span{font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-faint);font-weight:650}.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}\n</style>'
-);
+mustReplace("row renderer", /      var maxOwn = 40;\n      tbody\.innerHTML = sorted\.map\(function\(p\)\{[\s\S]*?      \}\)\.join\('\'\);/, `      var maxOwn=40;\n      tbody.innerHTML=sorted.map(function(p){var total=fmtDelta(p.total),event=fmtDelta(p.event),ownPct=Math.min(100,(p.own/maxOwn)*100),isFav=state.favs.has(p.id),isWatch=state.watchlist.has(p.id),isOwned=state.team&&state.team.picks.has(p.id),statusHtml=priceStatusMarkup(p),progressHtml=pricePercentMarkup(p,'progress'),predictionHtml=pricePercentMarkup(p,'predictedProgress'),mom=p.netTransfers>0?'<span class="momentum up">▲</span>':p.netTransfers<0?'<span class="momentum down">▼</span>':'<span class="momentum neutral">•</span>';return '<tr data-player-id="'+p.id+'" tabindex="0" role="button" class="'+(isOwned?'pw-row-owned ':'')+(isWatch?'pw-row-watch':'')+'"><td class="col-player"><div class="player-cell"><div class="action-buttons"><button class="fav-btn'+(isFav?' active':'')+'" data-fav-id="'+p.id+'" aria-label="Toggle favourite">'+(isFav?'★':'☆')+'</button><button class="watch-btn'+(isWatch?' active':'')+'" data-watch-id="'+p.id+'" aria-label="Toggle watchlist">'+(isWatch?'◉':'○')+'</button></div><div class="player-text"><span class="player-name">'+escapeHtml(p.name)+'</span><span class="player-meta"><span class="pos-badge pos-'+p.pos+'">'+p.pos+'</span>'+escapeHtml(p.team)+' · '+mom+'</span></div></div></td><td class="num">'+statusHtml+'</td><td class="num">'+progressHtml+'</td><td class="num">'+predictionHtml+'</td><td class="num price">'+fmtPrice(p.gw1)+'</td><td class="num price">'+fmtPrice(p.now)+'</td><td class="num"><span class="delta '+total.cls+'"><span class="arrow">'+total.arrow+'</span>'+total.text+'</span></td><td class="num"><span class="delta '+event.cls+'"><span class="arrow">'+event.arrow+'</span>'+event.text+'</span></td><td class="num">'+p.points+'</td><td class="num"><div class="own-bar-wrap">'+p.own.toFixed(1)+'%<span class="own-bar"><i style="width:'+ownPct+'%"></i></span></div></td></tr>';}).join('');`);
 
-replaceIfPresent(
-  "price change timer logic",
-  '  var risersOnly = document.getElementById("risersOnly");',
-  '  var risersOnly = document.getElementById("risersOnly");\n\n  function updatePriceTimer(){\n    var el=document.getElementById("pwPriceTimer");\n    if(!el){return;}\n    var now=new Date();\n    var parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(now),o={};\n    parts.forEach(function(x){if(x.type!=="literal")o[x.type]=x.value;});\n    var y=Number(o.year),m=Number(o.month)-1,d=Number(o.day),h=Number(o.hour),mi=Number(o.minute),se=Number(o.second);\n    var utcNow=Date.UTC(y,m,d,h,mi,se);\n    var offset=utcNow-now.getTime();\n    var nextMidnight=Date.UTC(y,m,d+1,0,0,0)-offset;\n    var diff=Math.max(0,nextMidnight-now.getTime()),s=Math.floor(diff/1000);\n    var hh=Math.floor(s/3600);s%=3600;var mm=Math.floor(s/60);s%=60;\n    el.textContent=String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(s).padStart(2,"0");\n  }\n  setInterval(updatePriceTimer,1000);\n  updatePriceTimer();'
-);
+mustReplace("team loader", /  async function loadMyTeam\(\)\{[\s\S]*?\n  \}\n  async function restoreTeam/, `  async function loadMyTeam(){var input=document.getElementById('pwTeamId'),id=parseInt(input&&input.value?input.value.trim():'',10);if(!id){showToast('Enter a valid FPL Team ID');return;}var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';try{var res=await fetchWithTimeout('/team?id='+encodeURIComponent(id),10000),data=await res.json();if(!res.ok||!data||!Array.isArray(data.picks)||data.picks.length!==15)throw new Error(data&&data.error?data.error:'Expected 15 players');state.team={id:id,picks:new Set(data.picks.map(Number)),value:data.value||0,bank:data.bank||0,name:data.name||''};try{localStorage.setItem(STORE_KEY_TEAM,String(id));}catch(e){}state.myTeamOnly=true;var chip=document.getElementById('myTeamOnly');if(chip)chip.classList.add('active');showToast('Team loaded · GW '+(data.gameweek||data.currentGameweek||'—'));render();}catch(e){showToast('Couldn\\'t load my team');}finally{button.disabled=false;button.textContent='Load my team';}}\n  async function restoreTeam`);
 
-const oldTeamNote = "    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device.';";
-const newTeamNote = "    var teamValue=state.team?state.players.filter(function(p){return state.team.picks.has(p.id);}).reduce(function(sum,p){return sum+p.now;},0):0; var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(teamValue/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Watchlist and your Team ID are saved locally on this device.';";
-replaceIfPresent("calculated team value", oldTeamNote, newTeamNote);
+mustReplace("snapshot", /  function persistSnapshot\(players, at\)\{[\s\S]*?\n  \}\n\n  function loadSnapshot\(\)\{[\s\S]*?\n  \}\n/, `  function persistSnapshot(players,at){try{var data=players.map(function(p){return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes];});localStorage.setItem(STORE_KEY_SNAPSHOT,JSON.stringify({version:2,at:at.toISOString(),data:data}));}catch(e){}}\n  function loadSnapshot(){try{var raw=localStorage.getItem(STORE_KEY_SNAPSHOT);if(!raw)return null;var parsed=JSON.parse(raw);if(parsed.version!==2||!Array.isArray(parsed.data))return null;var players=parsed.data.map(function(a){return{id:a[0],name:a[1],team:a[2],pos:a[3],gw1:a[4],now:a[5],total:a[6],event:a[7],own:a[8],status:a[9],teamName:a[10]||a[2],transfersIn:a[11]||0,transfersOut:a[12]||0,netTransfers:a[13]||0,points:a[14]||0,form:a[15]||0,epNext:a[16]||0,minutes:a[17]||0};});return{players:players,at:parsed.at};}catch(e){return null;}}\n`);
 
-// Keep season total FPL points as the player points field and table column.
-replaceIfPresent(
-  "remove gameweek points field",
-  '        netTransfers: netTransfers, points: el.total_points || 0, gwPoints: el.event_points || 0,',
-  '        netTransfers: netTransfers, points: el.total_points || 0,'
-);
-replaceIfPresent(
-  "rename gameweek points table header",
-  '        <th data-key="gwPoints" class="num"><button class="sort-btn">GW Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
-  '        <th data-key="points" class="num"><button class="sort-btn">Total Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="4,8 8,2 0,2"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
-);
-replaceIfPresent(
-  "remove gameweek points table cell",
-  '          \'<td class="num">\' + p.gwPoints + \'</td>\' +\n',
-  ''
-);
-replaceIfPresent(
-  "remove gameweek points modal detail",
-  "detailCard('GW Points',String(p.gwPoints))+detailCard('Points',String(p.points))",
-  "detailCard('Points',String(p.points))"
-);
-replaceIfPresent(
-  "restore points table cell",
-  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num"><div class="own-bar-wrap">',
-  '          \'<td class="num"><span class="delta \' + event.cls + \'"><span class="arrow">\' + event.arrow + \'</span>\' + event.text + \'</span></td>\' +\n          \'<td class="num">\' + p.points + \'</td>\' +\n          \'<td class="num"><div class="own-bar-wrap">'
-);
-replaceIfPresent(
-  "remove gameweek points snapshot persistence",
-  'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.gwPoints,p.form,p.epNext,p.minutes]; });',
-  'players.map(function(p){ return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes]; });'
-);
-replaceIfPresent(
-  "remove gameweek points snapshot restore",
-  'var hasGwPoints = a.length >= 19; return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, gwPoints:hasGwPoints ? (a[15] || 0) : 0, form:hasGwPoints ? (a[16] || 0) : (a[15] || 0), epNext:hasGwPoints ? (a[17] || 0) : (a[16] || 0), minutes:hasGwPoints ? (a[18] || 0) : (a[17] || 0) };',
-  'return { id:a[0], name:a[1], team:a[2], pos:a[3], gw1:a[4], now:a[5], total:a[6], event:a[7], own:a[8], status:a[9], teamName:a[10] || a[2], transfersIn:a[11] || 0, transfersOut:a[12] || 0, netTransfers:a[13] || 0, points:a[14] || 0, form:a[15] || 0, epNext:a[16] || 0, minutes:a[17] || 0 };'
-);
+mustReplace("status sorting", /      else \{ av = a\[key\]; bv = b\[key\]; \}/, '      else if(key==="priceStatusRank"){av=priceStatus(a).rank;bv=priceStatus(b).rank;} else if(key==="priceProgress"){av=priceMetric(a,"progress");bv=priceMetric(b,"progress");} else if(key==="pricePrediction"){av=priceMetric(a,"predictedProgress");bv=priceMetric(b,"predictedProgress");} else { av = a[key] == null ? 0 : a[key]; bv = b[key] == null ? 0 : b[key]; }');
+mustReplace("predictor startup", /  refresh\(false\);\n  setInterval\(function\(\)\{ refresh\(false\); \}, POLL_MS\);/, `  refresh(false);\n  loadPricePredictor();\n  setInterval(function(){ refresh(false); }, POLL_MS);\n  setInterval(loadPricePredictor,15*60*1000);\n  setInterval(function(){var t=document.getElementById('pwDeadline');if(t)t.textContent=formatPriceChangeCountdown();},1000);`);
+mustReplace("dashboard countdown", /    var ev=currentEvent\(state\.events\); if\(dl\)dl\.textContent=ev\?formatCountdown\(ev\.deadline_time\):'—';/, "    if(dl)dl.textContent=formatPriceChangeCountdown();");
 
-// Price Change status uses FPL's official projected progress where available.
-replaceIfPresent(
-  "remove availability status styles",
-  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650}.pw-status-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.pw-status.s100{color:#f4eef6}.pw-status.s100 .pw-status-dot{background:#37003c}.pw-status.s75{color:#ffe65b}.pw-status.s75 .pw-status-dot{background:#ffe65b}.pw-status.s50{color:#ffab1b}.pw-status.s50 .pw-status-dot{background:#ffab1b}.pw-status.s25{color:#d44401}.pw-status.s25 .pw-status-dot{background:#d44401}.pw-status.s0{color:#c0020d}.pw-status.s0 .pw-status-dot{background:#c0020d}.pw-status.sna{color:var(--text-faint)}.pw-status.sna .pw-status-dot{background:var(--flat)}\n</style>',
-  '.pw-price-timer strong{font-size:13px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.pw-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;white-space:nowrap}.pw-status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}.pw-status.rise{color:#00ff85;background:rgba(0,255,133,.12)}.pw-status.rise .pw-status-dot{background:#00ff85}.pw-status.drop{color:#ff3b5c;background:rgba(255,59,92,.12)}.pw-status.drop .pw-status-dot{background:#ff3b5c}.pw-status.neutral{color:var(--text-dim);background:rgba(255,255,255,.06)}.pw-status.neutral .pw-status-dot{background:var(--flat)}\n</style>'
-);
+if ((html.match(/<th\b/g)||[]).length < 10) throw new Error("Build verification failed: expected 10 headers");
+if (!/Total Points/.test(html)||!/p\.points/.test(html)) throw new Error("Build verification failed: Total Points missing");
+if (!/Progress %/.test(html)||!/Prediction %/.test(html)||!/pricePercentMarkup/.test(html)) throw new Error("Build verification failed: predictor percentages missing");
+if ((html.match(/id="pwDeadline"/g)||[]).length !== 1) throw new Error("Build verification failed: Price Change card is not unique");
+if (/class="pw-price-timer"/.test(html)) throw new Error("Build verification failed: header timer remains");
+if (!/version:2/.test(html)) throw new Error("Build verification failed: snapshot version missing");
 
-replaceIfPresent(
-  "remove availability status field",
-  '        netTransfers: netTransfers, points: el.total_points || 0, statusChance: el.chance_of_playing_next_round == null ? null : Number(el.chance_of_playing_next_round), statusRank: el.chance_of_playing_next_round == null ? 100 : Number(el.chance_of_playing_next_round),',
-  '        netTransfers: netTransfers, points: el.total_points || 0, priceChangePercent: el.price_change_percent == null ? null : Number(el.price_change_percent), priceChangeProjected: Array.isArray(el.price_change_projections) && el.price_change_projections.length ? Number(el.price_change_projections[0].projected_percent) : null, priceStatusRank: el.price_change_percent == null ? 0 : Math.abs(Number(el.price_change_percent)),'
-);
-
-replaceIfPresent(
-  "remove availability status renderer",
-  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100); var statusChance = p.statusChance == null ? null : p.statusChance; var statusText = p.status === "i" ? "Injured" : p.status === "d" ? "Doubtful" : p.status === "s" ? "Suspended" : p.status === "n" ? "Not in squad" : p.status === "u" ? "Unavailable" : "Available"; var statusLevel = statusChance == null ? "na" : String(statusChance); var statusHtml = \'<span class="pw-status s\' + statusLevel + \'"><span class="pw-status-dot"></span>\' + escapeHtml(statusText) + \'</span>\';',
-  '        var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100); var predictor = p.priceChangeProjected != null ? p.priceChangeProjected : p.priceChangePercent; var statusText = predictor == null ? "—" : predictor <= -100 ? "Very Likely to Drop" : predictor <= -80 ? "Likely to Drop" : predictor >= 100 ? "Very Likely to Rise" : predictor >= 80 ? "Likely to Rise" : "Unlikely to Change"; var statusClass = predictor == null ? "neutral" : predictor < -0.01 ? "drop" : predictor > 0.01 ? "rise" : "neutral"; var statusHtml = \'<span class="pw-status \' + statusClass + \'"><span class="pw-status-dot"></span>\' + escapeHtml(statusText) + \'</span>\';'
-);
-
-replaceIfPresent(
-  "status table sort key",
-  '        <th data-key="statusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>',
-  '        <th data-key="priceStatusRank" class="num"><button class="sort-btn">Status<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>'
-);
-
-replaceIfPresent(
-  "status table cell",
-  '          \'<td class="num">\' + statusHtml + \'</td><td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +',
-  '          \'<td class="num">\' + statusHtml + \'</td><td class="num price">\' + fmtPrice(p.gw1) + \'</td><td class="num price">\' + fmtPrice(p.now) + \'</td>\' +'
-);
-
-replaceIfPresent(
-  "status modal detail",
-  "detailCard('Status',p.statusChance == null ? 'Available' : ((p.statusChance || 0) + '%')+' · '+(p.status === 'i' ? 'Injured' : p.status === 'd' ? 'Doubtful' : p.status === 's' ? 'Suspended' : p.status === 'n' ? 'Not in squad' : p.status === 'u' ? 'Unavailable' : 'Available'))+detailCard('Points',String(p.points))",
-  "detailCard('Price Change',p.priceChangeProjected == null ? '—' : (p.priceChangeProjected >= 0 ? '+' : '')+p.priceChangeProjected.toFixed(1)+'% · '+(p.priceChangeProjected <= -100 ? 'Very Likely to Drop' : p.priceChangeProjected <= -80 ? 'Likely to Drop' : p.priceChangeProjected >= 100 ? 'Very Likely to Rise' : p.priceChangeProjected >= 80 ? 'Likely to Rise' : 'Unlikely to Change'))+detailCard('Points',String(p.points))"
-);
-
-fs.writeFileSync(file, text);
-console.log("Price Watch build patch complete");
+fs.writeFileSync(file, html);
+console.log("Price Watch build patch complete and verified");

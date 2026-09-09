@@ -10,6 +10,12 @@ function fail(message) {
   process.exit(1);
 }
 
+if (headers !== 10) fail(`expected 10 table headers, found ${headers}`);
+if (!/data-key="points"/.test(html) || !/Total Points/.test(html)) fail("Total Points header missing");
+if (!/p\.points/.test(html)) fail("Total Points data binding missing");
+if (!/data-key="priceStatusRank"/.test(html)) fail("Status column missing");
+if (!/Progress %/.test(html) || !/Prediction %/.test(html)) fail("Price predictor columns are missing");
+if (!/pricePercentMarkup/.test(html)) fail("Price predictor data binding is missing");
 if (headers !== 8) fail(`expected 8 table headers, found ${headers}`);
 if (!/data-key="points"/.test(html) || !/>Total Points<\/button>/.test(html)) fail("Total Points header missing");
 if (!/p\.points/.test(html)) fail("Total Points data binding missing");
