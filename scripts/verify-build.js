@@ -10,10 +10,12 @@ function fail(message) {
   process.exit(1);
 }
 
-if (headers !== 8) fail(`expected 8 table headers, found ${headers}`);
+if (headers !== 10) fail(`expected 10 table headers, found ${headers}`);
 if (!/data-key="points"/.test(html) || !/Total Points/.test(html)) fail("Total Points header missing");
 if (!/p\.points/.test(html)) fail("Total Points data binding missing");
 if (!/data-key="priceStatusRank"/.test(html)) fail("Status column missing");
+if (!/Progress %/.test(html) || !/Prediction %/.test(html)) fail("Price predictor columns are missing");
+if (!/pricePercentMarkup/.test(html)) fail("Price predictor data binding is missing");
 if ((html.match(/id="pwDeadline"/g) || []).length !== 1) fail("Price Change card target must be unique");
 if (/class="pw-price-timer"/.test(html)) fail("header price-change timer still exists");
 if (!/tabindex="0" role="button"/.test(html)) fail("keyboard-accessible player rows are missing");
