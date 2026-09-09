@@ -8,6 +8,7 @@
   var FETCH_INTERVAL=5*60*1000;
   var defaultProgressSort=true;
   var lastSortedOrder="";
+  var initialSortApplied=false;
 
   function number(v){
     var n=Number(v);
@@ -88,6 +89,19 @@
     lastSortedOrder=desired;
   }
 
+  function forceInitialAppSort(){
+    if(initialSortApplied)return;
+    var tbody=document.getElementById("tbody");
+    var button=document.querySelector('th[data-key="priceProgress"] .sort-btn');
+    if(!tbody||!button)return;
+    if(!tbody.querySelector('tr[data-player-id]'))return;
+    initialSortApplied=true;
+    button.click();
+    button.click();
+    defaultProgressSort=false;
+    lastSortedOrder="";
+  }
+
   function decorate(){
     if(applying)return;
     applying=true;
@@ -104,6 +118,7 @@
         var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
         if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
       });
+      forceInitialAppSort();
       applyDefaultProgressSort();
     }finally{
       applying=false;
