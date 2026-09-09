@@ -7,6 +7,7 @@
   var lastFetch=0;
   var FETCH_INTERVAL=5*60*1000;
   var defaultStatusSort=true;
+  var lastSortedOrder="";
 
   function number(v){
     var n=Number(v);
@@ -77,7 +78,15 @@
       var bn=(b.getAttribute("data-player-name")||"").toLowerCase();
       return an.localeCompare(bn);
     });
+    var desired=rows.map(function(row){return row.getAttribute("data-player-id");}).join(",");
+    var current=Array.prototype.slice.call(tbody.querySelectorAll("tr[data-player-id]")).map(function(row){return row.getAttribute("data-player-id");}).join(",");
+    if(desired===current){
+      lastSortedOrder=desired;
+      return;
+    }
+    if(desired===lastSortedOrder)return;
     rows.forEach(function(row){tbody.appendChild(row);});
+    lastSortedOrder=desired;
   }
 
   function decorate(){
@@ -89,9 +98,9 @@
         if(!id)return;
         var cell=tr.querySelector("td:nth-child(2)");
         if(!cell)return;
-        var status=statusFor(id);
         var nameCell=tr.querySelector(".player-name");
         if(nameCell)tr.setAttribute("data-player-name",nameCell.textContent||"");
+        var status=statusFor(id);
         if(status==="—")return;
         var cls=status.indexOf("Rise")!==-1?"rise":status.indexOf("Drop")!==-1?"drop":"neutral";
         if(cell.textContent.trim()!==status)cell.innerHTML='<span class="pw-status '+cls+'"><span class="pw-status-dot"></span>'+status+'</span>';
@@ -135,7 +144,9 @@
     });
 
     var tbody=document.getElementById("tbody");
-    if(tbody)new MutationObserver(function(){decorate();}).observe(tbody,{childList:true});
+    if(tbody)new MutationObserver(function(){
+      if(!applying)decorate();
+    }).observe(tbody,{childList:true});
     fetchData();
     setInterval(function(){fetchData();},30000);
   }
