@@ -81,6 +81,7 @@ function normalisePredictor(source) {
       item.progress_tonight ?? item.predicted_progress ?? item.predictedProgress ?? item.prediction ?? progress
     );
     const likelihood = Number.isFinite(Number(item.likelihood)) ? Number(item.likelihood) : null;
+    if (progress === null && predictedProgress === null) return;
     players[String(id)] = { progress, predictedProgress, likelihood };
   });
 
@@ -88,21 +89,7 @@ function normalisePredictor(source) {
 }
 
 async function handlePriceData() {
-  // FPL's own Price Change Predictor fields are the source of truth.
-  try {
-    const bootstrap = await fplJson("bootstrap-static/");
-    const players = {};
-    for (const player of bootstrap.elements || []) {
-      const record = officialPriceRecord(player);
-      if (record.progress !== null || record.predictedProgress !== null) {
-        players[String(player.id)] = record;
-      }
-    }
-    if (Object.keys(players).length) {
-      return json({ players, source: "fpl-bootstrap" }, 200, { "Cache-Control": "public, max-age=60" });
-    }
-  } catch (_) {}
-
+  // LiveFPL exposes the exact progress/prediction fields used by its predictor table.
   let lastError = null;
   for (const endpoint of PRICE_PREDICTOR_APIS) {
     try {
@@ -116,10 +103,27 @@ async function handlePriceData() {
       if (Object.keys(players).length) {
         return json({ players, source: endpoint }, 200, { "Cache-Control": "public, max-age=60" });
       }
-      lastError = new Error(endpoint + " returned no player records");
+      lastError = new Error(endpoint + " returned no predictor records");
     } catch (error) {
       lastError = error;
     }
+  }
+
+  // Official FPL data remains a fallback when the dedicated predictor is unavailable.
+  try {
+    const bootstrap = await fplJson("bootstrap-static/");
+    const players = {};
+    for (const player of bootstrap.elements || []) {
+      const record = officialPriceRecord(player);
+      if (record.progress !== null || record.predictedProgress !== null) {
+        players[String(player.id)] = record;
+      }
+    }
+    if (Object.keys(players).length) {
+      return json({ players, source: "fpl-bootstrap" }, 200, { "Cache-Control": "public, max-age=60" });
+    }
+  } catch (error) {
+    lastError = error;
   }
 
   return json(
