@@ -45,6 +45,14 @@ async function handleFpl(url) {
   }
 }
 
+function firstFinite(...values) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
 async function handlePriceData() {
   try {
     const response = await fetch(PRICE_PREDICTOR_API, {
@@ -56,14 +64,40 @@ async function handlePriceData() {
     const source = raw && raw.players ? raw.players : raw;
     const players = {};
 
-    Object.keys(source || {}).forEach((id) => {
-      const item = source[id] || {};
-      const predicted = Number(item.progress_tonight);
+    Object.entries(source || {}).forEach(([key, item]) => {
+      const record = item && typeof item === "object" ? item : {};
+      const id = firstFinite(record.id, record.element_id, key);
+      if (!Number.isInteger(id) || id <= 0) return;
+
+      const progress = firstFinite(
+        record.progress,
+        record.progress_now,
+        record.progress_now_pct != null ? Number(record.progress_now_pct) / 100 : null
+      );
+      const predictedProgress = firstFinite(
+        record.progress_tonight,
+        record.predicted_progress,
+        record.predictedProgress,
+        record.prediction,
+        record.prediction_pct != null ? Number(record.prediction_pct) / 100 : null,
+        progress
+      );
+      const perHour = firstFinite(
+        record.per_hour,
+        record.perHour,
+        record.per_hour_pct != null ? Number(record.per_hour_pct) / 100 : null
+      );
+
       players[String(id)] = {
-        progress: Number.isFinite(Number(item.progress)) ? Number(item.progress) : null,
-        predictedProgress: Number.isFinite(predicted) ? predicted : null
+        progress,
+        predictedProgress,
+        perHour
       };
     });
+
+    if (!Object.keys(players).length) {
+      throw new Error("Price predictor returned no player records");
+    }
 
     return json({ players }, 200, { "Cache-Control": "public, max-age=60" });
   } catch (error) {
