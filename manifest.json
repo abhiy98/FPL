@@ -7,9 +7,9 @@
   "scope": "./",
   "lang": "en-GB",
   "display": "standalone",
-  "display_override": ["standalone"],
-  "background_color": "#1c0025",
-  "theme_color": "#1c0025",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#37003c",
+  "theme_color": "#37003c",
   "orientation": "any",
   "categories": ["sports", "utilities"],
   "icons": [
