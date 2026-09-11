@@ -6,21 +6,19 @@
 - `manifest.json` + `sw.js` — installable PWA and service-worker cache
 - `icon-192.png` + `icon-512.png` — PWA icons
 - `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side enhancements
-- `scripts/patch-index.js` — deterministic Pages build transformation
-- `scripts/verify-build.js` — CI smoke test for the generated build
-- `.github/workflows/verify.yml` — GitHub Actions verification
+- `scripts/patch-index.js` — deterministic Pages build transformation and built-in structural verification
 
-Cloudflare Pages is the only deployment target. Legacy Netlify and standalone Wrangler configuration have been removed.
+Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files have been removed.
 
 ## Cloudflare Pages deployment
 
 Use the repository's `Reorg` branch in Cloudflare Pages with this build command:
 
 ```text
-node scripts/patch-index.js && node scripts/verify-build.js
+node scripts/patch-index.js
 ```
 
-The Pages output uses `_worker.js` in Advanced Mode. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
+The build script transforms `index.html` into the final app and verifies the required table, predictor, snapshot, and PWA structures before completing. The Pages output uses `_worker.js` in Advanced Mode. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
 
 ## FPL data
 
