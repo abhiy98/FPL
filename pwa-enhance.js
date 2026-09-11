@@ -24,18 +24,9 @@
     style.id="pwTableFixes";
     style.textContent=`
       footer{display:none!important;}
-      .table-wrap{position:relative;isolation:isolate;}
-      .table-wrap table{position:relative;isolation:isolate;}
-      thead{position:relative;z-index:20;}
-      thead th{
-        -webkit-transform:none!important;
-        transform:none!important;
-        -webkit-backface-visibility:visible!important;
-        backface-visibility:visible!important;
-        will-change:auto!important;
-      }
+      .table-wrap{position:relative;}
+      .table-wrap table{position:relative;}
       .col-player{
-        position:-webkit-sticky!important;
         position:sticky!important;
         left:0!important;
         right:auto!important;
@@ -49,18 +40,22 @@
         min-width:164px!important;
         max-width:164px!important;
       }
+      /* scroll-fix.js owns the separate fixed sticky header; do not re-sticky its clone */
+      #pwStickyHeader .col-player{
+        position:static!important;
+        left:auto!important;
+        right:auto!important;
+        z-index:auto!important;
+      }
       thead .col-player{
-        position:-webkit-sticky!important;
-        position:sticky!important;
-        top:0!important;
-        left:0!important;
+        position:static!important;
+        left:auto!important;
         right:auto!important;
         z-index:30!important;
       }
       .col-player .player-cell{position:relative;z-index:1;}
       .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
-      thead .col-player .sort-btn{justify-content:center!important;text-align:center!important;}
-      thead .col-player .sort-arrows{margin-left:2px;}
+      #pwStickyHeader .col-player .sort-btn{justify-content:center!important;text-align:center!important;}
       .player-cell .player-text{min-width:0!important;text-align:left!important;}
       .player-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;}
       td.num{overflow:hidden;}
@@ -68,7 +63,7 @@
       .delta .arrow{display:inline-block!important;flex:0 0 auto!important;margin:0!important;width:auto!important;}
       .pw-status,.pw-percent{display:inline-flex!important;align-items:center;justify-content:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
       .pw-status-dot{flex:0 0 auto;}
-      thead .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.7);}
+      #pwStickyHeader .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.7);}
       tbody .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.65);}
     `;
     document.head.appendChild(style);
