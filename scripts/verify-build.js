@@ -14,11 +14,11 @@ function fail(message) {
 }
 
 if (headers !== 10) fail(`expected 10 table headers, found ${headers}`);
-if (!/data-key="points"/.test(headerHtml) || !/>Total Points<\/button>/.test(headerHtml)) fail("Total Points header missing");
+if (!/data-key="points"/.test(headerHtml) || !/>Total Points(?:<span[^>]*>|\s*<\/button>)/.test(headerHtml)) fail("Total Points header missing");
 if (!/p\.points/.test(html)) fail("Total Points data binding missing");
 if (!/data-key="priceStatusRank"/.test(headerHtml)) fail("Status column missing");
-if (!/data-key="priceProgress"/.test(headerHtml) || !/>Progress %<\/button>/.test(headerHtml)) fail("Progress % header missing");
-if (!/data-key="pricePrediction"/.test(headerHtml) || !/>Prediction %<\/button>/.test(headerHtml)) fail("Prediction % header missing");
+if (!/data-key="priceProgress"/.test(headerHtml) || !/>Progress %(?:<span[^>]*>|\s*<\/button>)/.test(headerHtml)) fail("Progress % header missing");
+if (!/data-key="pricePrediction"/.test(headerHtml) || !/>Prediction %(?:<span[^>]*>|\s*<\/button>)/.test(headerHtml)) fail("Prediction % header missing");
 if (!/pricePercentMarkup/.test(html)) fail("Price predictor data binding is missing");
 if ((headerHtml.match(/data-key="event"/g) || []).length !== 1) fail("This GW header must be the only event-sorted column");
 if ((headerHtml.match(/data-key="points"/g) || []).length !== 1) fail("Total Points header must be unique");
