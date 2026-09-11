@@ -77,6 +77,18 @@
     refreshButton.removeAttribute("aria-label");
     refreshButton.removeAttribute("style");
     menu.insertBefore(refreshButton,menu.firstElementChild);
+
+    // The main app changes this button to the spinner icon while refreshing.
+    // Keep the menu action as plain "Refresh" text at all times.
+    var keepRefreshText=function(){
+      if(refreshButton && refreshButton.textContent!=="Refresh"){
+        refreshButton.textContent="Refresh";
+      }
+    };
+    if(window.MutationObserver){
+      var observer=new MutationObserver(keepRefreshText);
+      observer.observe(refreshButton,{childList:true,subtree:true,characterData:true});
+    }
   }
 
   function build(){
