@@ -24,6 +24,26 @@
     style.id="pwTableFixes";
     style.textContent=`
       footer{display:none!important;}
+      thead th{
+        -webkit-transform:none!important;
+        transform:none!important;
+        -webkit-backface-visibility:visible!important;
+        backface-visibility:visible!important;
+        will-change:auto!important;
+      }
+      .col-player{
+        position:sticky!important;
+        left:0!important;
+        -webkit-transform:none!important;
+        transform:none!important;
+        -webkit-backface-visibility:visible!important;
+        backface-visibility:visible!important;
+        will-change:auto!important;
+        z-index:5!important;
+      }
+      thead .col-player{z-index:6!important;top:0!important;left:0!important;}
+      .col-player .player-cell{position:relative;z-index:1;}
+      .col-player{background-clip:padding-box!important;}
       .col-player{min-width:164px!important;max-width:164px!important;}
       .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
       .player-cell .player-text{min-width:0!important;text-align:left!important;}
