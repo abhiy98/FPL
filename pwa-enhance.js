@@ -3,7 +3,6 @@
 
   var KEY="pricewatch:pwa-state";
   var saveTimer=0;
-  var playerLockFrame=0;
 
   function removeWatchlist(){
     var toggle=document.getElementById("watchlistOnly");
@@ -17,35 +16,10 @@
     if(footer)footer.style.display="none";
   }
 
-  function lockPlayerColumn(){
-    var wrap=document.querySelector(".table-wrap");
-    if(!wrap)return;
-    var x=wrap.scrollLeft||0;
-    if(playerLockFrame)return;
-    playerLockFrame=requestAnimationFrame(function(){
-      playerLockFrame=0;
-      document.querySelectorAll(".col-player").forEach(function(cell){
-        cell.style.setProperty("transform","translate3d("+x+"px,0,0)","important");
-      });
-    });
-  }
-
-  function bindPlayerColumnLock(){
-    var wrap=document.querySelector(".table-wrap");
-    if(!wrap||wrap.dataset.playerLockBound==="1")return;
-    wrap.dataset.playerLockBound="1";
-    wrap.addEventListener("scroll",function(){lockPlayerColumn();},{passive:true});
-    lockPlayerColumn();
-  }
-
   function applyTableFixes(){
     removeWatchlist();
     hideFooter();
-    if(document.getElementById("pwTableFixes")){
-      bindPlayerColumnLock();
-      lockPlayerColumn();
-      return;
-    }
+    if(document.getElementById("pwTableFixes"))return;
     var style=document.createElement("style");
     style.id="pwTableFixes";
     style.textContent=`
@@ -58,22 +32,25 @@
         will-change:auto!important;
       }
       .col-player{
-        position:relative!important;
-        left:auto!important;
+        position:sticky!important;
+        left:0!important;
         z-index:5!important;
+        -webkit-transform:none!important;
+        transform:none!important;
         -webkit-backface-visibility:visible!important;
         backface-visibility:visible!important;
-        will-change:transform;
+        will-change:auto!important;
+        background-clip:padding-box!important;
+        min-width:164px!important;
+        max-width:164px!important;
       }
       thead .col-player{
         position:sticky!important;
         top:0!important;
-        left:auto!important;
+        left:0!important;
         z-index:6!important;
       }
       .col-player .player-cell{position:relative;z-index:1;}
-      .col-player{background-clip:padding-box!important;}
-      .col-player{min-width:164px!important;max-width:164px!important;}
       .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
       thead .col-player .sort-btn{justify-content:center!important;text-align:center!important;}
       thead .col-player .sort-arrows{margin-left:2px;}
@@ -88,8 +65,6 @@
       tbody .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.65);}
     `;
     document.head.appendChild(style);
-    bindPlayerColumnLock();
-    lockPlayerColumn();
   }
 
   function movePriceChangeFirst(){
@@ -206,7 +181,6 @@
   function restoreScroll(){
     var s=read();
     if(Number.isFinite(s.scrollLeft)||Number.isFinite(s.scrollTop))window.scrollTo(Number.isFinite(s.scrollLeft)?s.scrollLeft:0,Number.isFinite(s.scrollTop)?s.scrollTop:0);
-    lockPlayerColumn();
   }
 
   function start(){
