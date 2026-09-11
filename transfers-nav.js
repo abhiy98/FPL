@@ -8,13 +8,13 @@
     button.setAttribute("role","menuitem");
     button.setAttribute("data-transfer-nav","1");
     button.textContent="Transfers";
-    button.addEventListener("click",function(){ window.location.href="/transfers"; });
+    button.addEventListener("click",function(){ window.location.href="/transfer"; });
     menu.insertBefore(button,menu.firstElementChild);
     return true;
   }
   function markStandalone(){
-    if(location.pathname.indexOf("transfers")===-1) return;
-    var link=document.querySelector('a[href="/transfers"]');
+    if(location.pathname.indexOf("/transfer")!==0) return;
+    var link=document.querySelector('a[href="/transfer"]');
     if(link) link.classList.add("active");
   }
   function start(){
