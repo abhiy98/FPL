@@ -36,18 +36,29 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{
     margin:0;padding:0;height:100%;
-    background:var(--ink);
+    background:var(--ink); /* FIX 1: paint full viewport incl. under home indicator */
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     overscroll-behavior-y:none;
   }
-  body{
-    display:flex;flex-direction:column;
-    height:100vh;
-    height:100dvh;
-  }
+body{
+  display:flex;flex-direction:column;
+  height:100vh;
+  height:100dvh;
+  padding-bottom:0;
+}
 
-  /* ---------- header ---------- */
+.table-wrap{
+  flex:1;
+  min-height:0;
+  padding-bottom:0;
+}
+
+footer{
+  display:none !important;
+}
+
+/* ---------- header ---------- */
   header{
     flex:none;
     padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px;
@@ -153,6 +164,12 @@
     font-weight:600;
     padding:0;
     white-space:nowrap;
+    /* FIX 2 & 3: force onto own compositing layer so WebKit doesn't drop sticky mid-scroll */
+    -webkit-transform:translateZ(0);
+    transform:translateZ(0);
+    -webkit-backface-visibility:hidden;
+    backface-visibility:hidden;
+    will-change:transform;
   }
   th button.sort-btn{
     all:unset;
@@ -172,8 +189,18 @@
     background:var(--ink-2);
     min-width:168px;max-width:168px;
     border-right:1px solid var(--line-strong);
+    /* FIX 3: keep horizontal-sticky cells on the compositor too */
+    -webkit-transform:translateZ(0);
+    transform:translateZ(0);
+    -webkit-backface-visibility:hidden;
+    backface-visibility:hidden;
+    will-change:transform;
   }
-  thead .col-player{z-index:4;}
+  thead .col-player{
+    z-index:4;
+    top:0;
+    left:0;
+  }
   tbody .col-player{background:var(--panel);}
   tbody tr:nth-child(even) .col-player{background:var(--panel-2);}
 
@@ -225,18 +252,6 @@
     animation:shimmer 1.3s infinite;
   }
   @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-
-  footer{
-    flex:none;
-    padding:9px 16px calc(env(safe-area-inset-bottom,0px) + 9px);
-    border-top:1px solid var(--line);
-    background:var(--ink-2);
-    display:flex;align-items:center;justify-content:space-between;
-    font-size:11px;color:var(--text-faint);
-  }
-  footer .legend{display:flex;gap:12px;}
-  footer .legend span{display:flex;align-items:center;gap:4px;}
-  footer .dot{width:6px;height:6px;border-radius:50%;}
 
   .toast{
     position:fixed;left:50%;bottom:70px;transform:translateX(-50%) translateY(20px);
