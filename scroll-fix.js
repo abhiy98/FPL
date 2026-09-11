@@ -21,6 +21,7 @@
     var active=wrapRect.top<=topLimit+1 && wrapRect.bottom>topLimit+headHeight;
 
     stickyBar.style.display=active?"block":"none";
+    thead.style.visibility=active?"hidden":"visible";
     if(!active)return;
 
     stickyBar.style.top="env(safe-area-inset-top, 0px)";
@@ -30,6 +31,7 @@
     if(!sourceCells.length)return;
     var playerWidth=sourceCells[0].getBoundingClientRect().width;
     stickyPlayer.style.width=playerWidth+"px";
+    stickyPlayer.scrollLeft=0;
     stickyRest.style.left=playerWidth+"px";
     stickyRest.style.width=Math.max(0,window.innerWidth-playerWidth)+"px";
     stickyRest.scrollLeft=tableWrap.scrollLeft;
@@ -136,12 +138,14 @@
         .pw-page-scroll thead th{position:static!important;}
         #pwStickyHeader{display:none;position:fixed;left:0;right:0;top:0;z-index:110;overflow:hidden;background:var(--ink-2);border-bottom:1px solid var(--line-strong);box-sizing:border-box;}
         #pwStickyHeader table{border-collapse:separate;border-spacing:0;table-layout:auto;margin:0;}
-        #pwStickyHeader thead th{position:static!important;background:var(--ink-2)!important;}
+        #pwStickyHeader thead th{position:static!important;left:auto!important;top:auto!important;right:auto!important;background:var(--ink-2)!important;}
         #pwStickyHeader button{pointer-events:none;}
-        .pw-sticky-player{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ink-2);border-right:1px solid var(--line-strong);}
+        .pw-sticky-player{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ink-2);border-right:1px solid var(--line-strong);z-index:2;}
         .pw-sticky-player table{width:100%;min-width:100%;}
-        .pw-sticky-player th{width:100%!important;min-width:100%!important;}
-        .pw-sticky-rest{position:absolute;top:0;bottom:0;overflow:hidden;background:var(--ink-2);}
+        .pw-sticky-player th{width:100%!important;min-width:100%!important;position:static!important;left:auto!important;top:auto!important;right:auto!important;}
+        .pw-sticky-player .sort-btn{justify-content:center!important;text-align:center!important;}
+        .pw-sticky-player .sort-arrows{margin-left:2px;}
+        .pw-sticky-rest{position:absolute;left:164px;top:0;bottom:0;overflow:hidden;background:var(--ink-2);}
         .pw-sticky-rest table{width:max-content;min-width:0;}
         .pw-sticky-rest thead th{background:var(--ink-2)!important;}
       `;
