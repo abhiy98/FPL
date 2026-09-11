@@ -1,31 +1,30 @@
 # Price Watch — FPL price tracker
 
-## What's in the folder
-- `index.html` — the app (frozen player column, searchable/filterable table, live refresh and player details)
-- `manifest.json` + `sw.js` — installable PWA shell with offline caching and enhancement injection
-- `worker.js` — Cloudflare Worker for the FPL, team and price-predictor APIs
-- `wrangler.jsonc` — Cloudflare Worker + static assets configuration
-- `scripts/patch-index.js` — deterministic build transformation and structural validation
-- `scripts/verify-build.js` — standalone build-output and PWA-state smoke test
-- `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side presentation and PWA enhancements
+## Project structure
+- `index.html` — the app UI and client-side data loading
+- `_worker.js` — Cloudflare Pages Advanced Mode worker for `/fpl`, `/team` and `/price-data`
+- `manifest.json` + `sw.js` — installable PWA and service-worker cache
+- `icon-192.png` + `icon-512.png` — PWA icons
+- `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side enhancements
+- `scripts/patch-index.js` — deterministic Pages build transformation
+- `scripts/verify-build.js` — CI smoke test for the generated build
+- `.github/workflows/verify.yml` — GitHub Actions verification
 
-Cloudflare Workers is the only deployment target. Legacy Netlify handlers and configuration are no longer part of the repository.
+Cloudflare Pages is the only deployment target. Legacy Netlify and standalone Wrangler configuration have been removed.
 
-## Cloudflare deployment
+## Cloudflare Pages deployment
 
-Set the Workers Build command to:
+Use the repository's `Reorg` branch in Cloudflare Pages with this build command:
 
 ```text
 node scripts/patch-index.js && node scripts/verify-build.js
 ```
 
-Then deploy with `npx wrangler deploy`.
-
-The build step produces the final `index.html`; the Cloudflare Worker serves that HTML and handles the `/fpl`, `/team` and `/price-data` API routes. The service worker adds player-photo, scrolling and local-state enhancements for the installed/served app.
+The Pages output uses `_worker.js` in Advanced Mode. Cloudflare's Pages worker serves the static assets through `env.ASSETS` and handles the API routes directly. citeturn952029view0
 
 ## FPL data
 
-The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player payloads, and polls every 3 minutes plus when the tab becomes visible. Price predictor data is loaded separately from `/price-data` with a direct LiveFPL fallback. The price-change countdown uses UK midnight and is shown only in the dashboard card.
+The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player payloads, and refreshes periodically plus when the tab becomes visible. Price-predictor data is loaded separately from `/price-data` with a direct LiveFPL fallback. The price-change countdown uses UK midnight and is shown in the dashboard card.
 
 ## Columns
 
@@ -40,4 +39,4 @@ The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player 
 - **Total Points** — season total FPL points
 - **Owned** — percentage of managers who own the player
 
-Player photos use multiple Premier League asset paths and fall back to a team-colored jersey when no player image is available. The table defaults to price-change status order and can be manually sorted by any column.
+Player photos use multiple Premier League asset paths and fall back to a team-colored jersey when no player image is available. The table defaults to price-change ordering and can be manually sorted by any column.
