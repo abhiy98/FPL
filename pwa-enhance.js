@@ -57,11 +57,11 @@
   function firstSortDirection(key){return key==="name"||key==="priceProgress"?"asc":"desc";}
 
   function defaultSort(){
-    var status=document.querySelector('th[data-key="priceStatusRank"] .sort-btn');
-    if(!status)return;
+    var progress=document.querySelector('th[data-key="priceProgress"] .sort-btn');
+    if(!progress)return;
     var state=read();
     if(state.sortKey)return;
-    status.click();
+    progress.click();
   }
 
   function restore(){
