@@ -5,7 +5,7 @@
 - `_worker.js` — Cloudflare Pages Advanced Mode worker for `/fpl`, `/team` and `/price-data`
 - `manifest.json` + `sw.js` — installable PWA and service-worker cache
 - `icon-192.png` + `icon-512.png` — PWA icons
-- `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side enhancements
+- `jersey-fix.js`, `pwa-enhance.js` — client-side enhancements
 - `scripts/patch-index.js` — deterministic Pages build transformation and built-in structural verification
 
 Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files are no longer part of the repository.
