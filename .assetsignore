@@ -2,9 +2,6 @@ worker.js
 wrangler.jsonc
 .assetsignore
 scripts/
-functions/
-netlify/
-netlify.toml
 README.md
 .github/
 .git/
