@@ -121,6 +121,7 @@
         .pw-page-scroll>.pw-dashboard{position:static;width:100%;min-width:100%;transform:none!important;will-change:auto;}
         .pw-page-scroll>.table-wrap{width:100%;min-width:0;overflow-x:auto!important;overflow-y:visible!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:none;min-height:0;height:auto;flex:none;position:relative;}
         .pw-page-scroll thead th{position:static!important;}
+        .pw-page-scroll thead th.col-player, .pw-page-scroll thead th:first-child{position:sticky!important;left:0!important;z-index:5!important;}
         #pwStickyHeader{display:none;position:fixed;left:0;right:0;top:0;z-index:110;overflow:hidden;background:var(--ink-2);border-bottom:1px solid var(--line-strong);box-sizing:border-box;}
         #pwStickyHeader table{border-collapse:separate;border-spacing:0;table-layout:auto;margin:0;}
         #pwStickyHeader thead th{position:static!important;background:var(--ink-2)!important;}
