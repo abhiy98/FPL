@@ -176,25 +176,8 @@ async function handleTeam(url) {
   }
 }
 
-async function handleAsset(request, env) {
-  const response = await env.ASSETS.fetch(request);
-  const contentType = response.headers.get("content-type") || "";
-  if (!response.ok || !contentType.includes("text/html")) return response;
-
-  let html = await response.text();
-  if (!html.includes("/jersey-fix.js")) html = html.replace(/<\/body>/i, '<script src="/jersey-fix.js"></script></body>');
-  if (!html.includes("/scroll-fix.js")) html = html.replace(/<\/body>/i, '<script src="/scroll-fix.js"></script></body>');
-  if (!html.includes("/pwa-enhance.js")) html = html.replace(/<\/body>/i, '<script src="/pwa-enhance.js"></script></body>');
-  if (!html.includes("/team-menu.js")) html = html.replace(/<\/body>/i, '<script src="/team-menu.js"></script></body>');
-  if (!html.includes("/transfers-nav.js")) html = html.replace(/<\/body>/i, '<script src="/transfers-nav.js"></script></body>');
-
-  const headers = new Headers(response.headers);
-  headers.delete("content-length");
-  return new Response(html, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
+function handleAsset(request, env) {
+  return env.ASSETS.fetch(request);
 }
 
 export default {
@@ -203,10 +186,10 @@ export default {
     if (url.pathname === "/fpl") return handleFpl(url);
     if (url.pathname === "/price-data") return handlePriceData();
     if (url.pathname === "/team") return handleTeam(url);
-    if (url.pathname === "/transfers" || url.pathname.endsWith("/transfers.html")) {
-      const assetRequest = url.pathname.endsWith("/transfers.html") ? request : new Request(new URL("/transfers.html", url), request);
-      return handleAsset(assetRequest, env);
+    if (url.pathname === "/transfers") {
+      return Response.redirect(new URL("/transfers.html", url).toString(), 302);
     }
+    if (url.pathname === "/transfers.html") return handleAsset(request, env);
     if (url.pathname === "/" || url.pathname === "/index.html") return handleAsset(request, env);
     return env.ASSETS.fetch(request);
   }
