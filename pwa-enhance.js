@@ -11,12 +11,19 @@
     document.querySelectorAll(".pw-row-watch").forEach(function(row){row.classList.remove("pw-row-watch");});
   }
 
+  function hideFooter(){
+    var footer=document.querySelector("footer");
+    if(footer)footer.style.display="none";
+  }
+
   function applyTableFixes(){
     removeWatchlist();
+    hideFooter();
     if(document.getElementById("pwTableFixes"))return;
     var style=document.createElement("style");
     style.id="pwTableFixes";
     style.textContent=`
+      footer{display:none!important;}
       .col-player{min-width:164px!important;max-width:164px!important;}
       .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
       .player-cell .player-text{min-width:0!important;text-align:left!important;}
@@ -69,6 +76,7 @@
     var s=read();
     delete s.watchlistOnly;
     removeWatchlist();
+    hideFooter();
 
     var input=document.getElementById("search");
     if(input&&s.search){input.value=s.search;input.dispatchEvent(new Event("input",{bubbles:true}));}
