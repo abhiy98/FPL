@@ -31,7 +31,17 @@
 
       var style=document.createElement("style");
       style.id="pwMobileScrollStyles";
-      style.textContent=`html,body{width:100%;max-width:100%;overflow:hidden!important;overscroll-behavior-x:none}.pw-page-scroll{flex:1 1 auto;min-width:0;min-height:0;width:100%;max-width:none;overflow:auto;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:none;overscroll-behavior-y:auto;position:relative}.pw-page-scroll>header{position:sticky;top:auto;left:0;z-index:21;width:100%;min-width:100%;transform:none!important;will-change:auto}.pw-page-scroll>.pw-dashboard{position:sticky;top:auto;left:0;z-index:20;width:100%;min-width:100%;transform:none!important;will-change:auto}.pw-page-scroll>.table-wrap{overflow:visible!important;min-height:0!important;height:auto!important;flex:none!important}`;
+      style.textContent=`
+        html{background:var(--ink-2)!important;}
+        html,body{width:100%;max-width:100%;overscroll-behavior-x:none;}
+        body{background:var(--ink)!important;padding:0;}
+        .pw-page-scroll{flex:1 1 auto;min-width:0;min-height:0;width:100%;max-width:none;overflow:auto;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:none;overscroll-behavior-y:auto;position:relative;padding-bottom:34px;}
+        .pw-page-scroll>header{position:sticky;top:auto;left:0;z-index:21;width:100%;min-width:100%;transform:none!important;will-change:auto;}
+        .pw-page-scroll>.pw-dashboard{position:sticky;top:auto;left:0;z-index:20;width:100%;min-width:100%;transform:none!important;will-change:auto;}
+        .pw-page-scroll>.table-wrap{overflow:visible!important;min-height:0!important;height:auto!important;flex:none!important;}
+        body:has(footer)::after{content:"";position:fixed;left:0;right:0;bottom:0;height:env(safe-area-inset-bottom,0px);background:var(--ink-2);z-index:28;pointer-events:none;}
+        body>footer{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:29!important;width:100%!important;max-width:none!important;min-height:0!important;height:auto!important;padding:4px 12px calc(4px + env(safe-area-inset-bottom,0px))!important;margin:0!important;box-sizing:border-box!important;overflow:hidden!important;}
+      `;
       document.head.appendChild(style);
 
       pageScroll.addEventListener("scroll",function(){
