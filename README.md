@@ -20,7 +20,7 @@ Use the repository's `Reorg` branch in Cloudflare Pages with this build command:
 node scripts/patch-index.js && node scripts/verify-build.js
 ```
 
-The Pages output uses `_worker.js` in Advanced Mode. Cloudflare's Pages worker serves the static assets through `env.ASSETS` and handles the API routes directly. citeturn952029view0
+The Pages output uses `_worker.js` in Advanced Mode. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
 
 ## FPL data
 
