@@ -133,9 +133,10 @@
         .pw-sticky-rest table{width:max-content;min-width:0;}
         .pw-sticky-rest thead th{background:var(--ink-2)!important;}
         footer{display:none!important;}
-        #tableWrap .col-player{min-width:164px!important;max-width:164px!important;background-clip:padding-box!important;}
-        #tableWrap .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
-        #tableWrap .player-cell .player-text{min-width:0!important;text-align:left!important;}
+        #tableWrap .col-player{min-width:164px!important;max-width:164px!important;background-clip:padding-box!important;text-align:center!important;}
+        #tableWrap .player-cell{justify-content:center!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
+        #tableWrap .player-cell .player-text{min-width:0!important;text-align:center!important;}
+        #tableWrap th.col-player .sort-btn{justify-content:center!important;text-align:center!important;}
         #tableWrap .player-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;}
         #tableWrap td.num{overflow:hidden;}
         #tableWrap .delta{display:inline-flex!important;align-items:center;justify-content:center;gap:2px;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;vertical-align:middle;}
