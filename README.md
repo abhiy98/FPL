@@ -7,11 +7,13 @@
 - `wrangler.jsonc` — Cloudflare Worker + static assets configuration
 - `scripts/patch-index.js` — deterministic build transformation and structural validation
 - `scripts/verify-build.js` — standalone build-output and PWA-state smoke test
-- `functions/` and `netlify/` — legacy deployment handlers retained for reference while Cloudflare is the primary deployment target
+- `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side presentation and PWA enhancements
+
+Cloudflare Workers is the only deployment target. Legacy Netlify handlers and configuration are no longer part of the repository.
 
 ## Cloudflare deployment
 
-Cloudflare Workers is the primary deployment target. Set the Workers Build command to:
+Set the Workers Build command to:
 
 ```text
 node scripts/patch-index.js && node scripts/verify-build.js
