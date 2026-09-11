@@ -5,6 +5,8 @@
   var dashboard;
   var menu;
   var editor;
+  var menuButton;
+  var refreshButton;
 
   function getTeamId(){
     try{return localStorage.getItem(TEAM_KEY)||"";}catch(e){return "";}
@@ -23,12 +25,14 @@
 
   function closeMenu(){
     if(menu)menu.classList.remove("open");
+    if(menuButton)menuButton.setAttribute("aria-expanded","false");
   }
 
   function openMenu(){
     if(!menu)return;
     menu.classList.add("open");
     updateMenu();
+    if(menuButton)menuButton.setAttribute("aria-expanded","true");
   }
 
   function showEditor(mode){
@@ -58,24 +62,43 @@
     updateMenu();
   }
 
+  function moveRefreshIntoMenu(){
+    refreshButton=document.getElementById("refreshBtn");
+    if(!refreshButton || !menu)return;
+
+    refreshButton.className="pw-menu-refresh";
+    refreshButton.setAttribute("type","button");
+    refreshButton.textContent="Refresh";
+    refreshButton.innerHTML="Refresh";
+    refreshButton.removeAttribute("aria-label");
+    refreshButton.removeAttribute("style");
+    menu.insertBefore(refreshButton,menu.firstElementChild);
+  }
+
   function build(){
     dashboard=document.getElementById("pwDashboard");
     if(!dashboard || document.getElementById("pwTeamMenuButton"))return;
 
+    var statusPill=document.getElementById("statusPill");
+    var brandRow=document.querySelector(".brand-row");
+    if(!statusPill || !brandRow)return;
+
     var style=document.createElement("style");
     style.id="pwTeamMenuStyles";
     style.textContent=`
-      .pw-dashboard{position:relative!important;}
+      .status-actions{display:flex;align-items:center;gap:6px;flex:none;}
+      .status-actions .status-pill{margin:0;}
       .pw-tools,.pw-team-note{display:none!important;}
-      .pw-team-menu-wrap{position:absolute;top:10px;right:12px;z-index:30;}
-      #pwTeamMenuButton{width:34px;height:34px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text-dim);border-radius:9px;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+      #pwTeamMenuButton{width:34px;height:34px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text-dim);border-radius:9px;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-family:inherit;}
       #pwTeamMenuButton:active{background:var(--panel-2);color:var(--text);}
-      .pw-team-menu{position:absolute;top:40px;right:0;width:170px;padding:6px;border:1px solid var(--line-strong);border-radius:10px;background:var(--panel-2);box-shadow:0 12px 28px rgba(0,0,0,.45);display:none;}
+      .pw-team-menu-wrap{position:relative;flex:none;}
+      .pw-team-menu{position:absolute;top:40px;right:0;width:185px;padding:6px;border:1px solid var(--line-strong);border-radius:10px;background:var(--panel-2);box-shadow:0 12px 28px rgba(0,0,0,.45);display:none;z-index:50;}
       .pw-team-menu.open{display:flex;flex-direction:column;gap:2px;}
-      .pw-team-menu button{display:flex;align-items:center;width:100%;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:7px;font-size:13px;text-align:left;cursor:pointer;}
+      .pw-team-menu button{display:flex;align-items:center;width:100%;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:7px;font-size:13px;text-align:left;cursor:pointer;font-family:inherit;}
       .pw-team-menu button:hover,.pw-team-menu button:active{background:rgba(255,255,255,.06);}
       .pw-team-menu button.danger{color:var(--fall);}
-      .pw-team-editor{position:absolute;top:48px;right:12px;z-index:29;width:min(330px,calc(100vw - 24px));padding:12px;border:1px solid var(--line-strong);border-radius:11px;background:var(--panel-2);box-shadow:0 14px 32px rgba(0,0,0,.5);display:none;}
+      .pw-team-menu .pw-menu-refresh{order:-1;color:var(--accent);}
+      .pw-team-editor{position:absolute;top:48px;right:12px;z-index:49;width:min(330px,calc(100vw - 24px));padding:12px;border:1px solid var(--line-strong);border-radius:11px;background:var(--panel-2);box-shadow:0 14px 32px rgba(0,0,0,.5);display:none;}
       .pw-team-editor.open{display:block;}
       .pw-team-editor .pw-tools{display:flex!important;margin-top:0!important;flex-wrap:nowrap;}
       .pw-team-editor .pw-team-note{display:block!important;margin-top:6px;}
@@ -84,16 +107,26 @@
     `;
     document.head.appendChild(style);
 
+    var actions=document.createElement("div");
+    actions.className="status-actions";
+    brandRow.appendChild(actions);
+    actions.appendChild(statusPill);
+
     var wrap=document.createElement("div");
     wrap.className="pw-team-menu-wrap";
     wrap.innerHTML=`
-      <button id="pwTeamMenuButton" type="button" aria-label="Team menu" aria-expanded="false">⋯</button>
+      <button id="pwTeamMenuButton" type="button" aria-label="More options" aria-expanded="false">⋮</button>
       <div class="pw-team-menu" role="menu">
+        <button type="button" data-team-action="refresh" role="menuitem">Refresh</button>
         <button type="button" data-team-action="add" role="menuitem">Add team</button>
         <button type="button" data-team-action="change" role="menuitem">Change team</button>
         <button type="button" data-team-action="remove" class="danger" role="menuitem">Remove team</button>
       </div>`;
-    dashboard.appendChild(wrap);
+    actions.appendChild(wrap);
+
+    menu=wrap.querySelector(".pw-team-menu");
+    menuButton=document.getElementById("pwTeamMenuButton");
+    moveRefreshIntoMenu();
 
     editor=document.createElement("div");
     editor.className="pw-team-editor";
@@ -106,24 +139,22 @@
     if(originalNote)editor.querySelector(".pw-team-note").replaceWith(originalNote);
     dashboard.appendChild(editor);
 
-    var button=document.getElementById("pwTeamMenuButton");
-    button.addEventListener("click",function(e){
+    menuButton.addEventListener("click",function(e){
       e.stopPropagation();
-      var open=!menu.classList.contains("open");
-      closeMenu();
-      if(open)openMenu();
-      button.setAttribute("aria-expanded",open?"true":"false");
+      if(menu.classList.contains("open"))closeMenu();else openMenu();
     });
-    menu=wrap.querySelector(".pw-team-menu");
 
-    menu.querySelector("[data-team-action='add']").addEventListener("click",function(){closeMenu();button.setAttribute("aria-expanded","false");showEditor("add");});
-    menu.querySelector("[data-team-action='change']").addEventListener("click",function(){closeMenu();button.setAttribute("aria-expanded","false");showEditor("change");});
+    menu.querySelector("[data-team-action='refresh']").addEventListener("click",function(){
+      closeMenu();
+      if(refreshButton)refreshButton.click();
+    });
+    menu.querySelector("[data-team-action='add']").addEventListener("click",function(){closeMenu();showEditor("add");});
+    menu.querySelector("[data-team-action='change']").addEventListener("click",function(){closeMenu();showEditor("change");});
     menu.querySelector("[data-team-action='remove']").addEventListener("click",removeTeam);
 
     document.addEventListener("click",function(e){
       if(!wrap.contains(e.target)){
         closeMenu();
-        button.setAttribute("aria-expanded","false");
         if(editor && !editor.contains(e.target))hideEditor();
       }
     });
@@ -131,7 +162,6 @@
       if(e.key==="Escape"){
         closeMenu();
         hideEditor();
-        button.setAttribute("aria-expanded","false");
       }
     });
 
