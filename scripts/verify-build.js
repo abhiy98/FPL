@@ -1,1 +1,0 @@
-// Verification is built into scripts/patch-index.js.
