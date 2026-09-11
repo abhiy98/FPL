@@ -24,47 +24,57 @@
     style.id="pwTableFixes";
     style.textContent=`
       footer{display:none!important;}
-      .table-wrap{position:relative;}
-      .table-wrap table{position:relative;}
-      .col-player{
-        position:sticky!important;
-        left:0!important;
-        right:auto!important;
-        z-index:15!important;
-        -webkit-transform:none!important;
-        transform:none!important;
-        -webkit-backface-visibility:visible!important;
-        backface-visibility:visible!important;
-        will-change:auto!important;
-        background-clip:padding-box!important;
+      /* scroll-fix.js is the single owner of table/header positioning. */
+      #tableWrap .col-player{
         min-width:164px!important;
         max-width:164px!important;
+        background-clip:padding-box!important;
       }
-      /* scroll-fix.js owns the separate fixed sticky header; do not re-sticky its clone */
-      #pwStickyHeader .col-player{
-        position:static!important;
-        left:auto!important;
-        right:auto!important;
-        z-index:auto!important;
+      #tableWrap .player-cell{
+        justify-content:flex-start!important;
+        gap:7px!important;
+        padding-left:7px!important;
+        padding-right:7px!important;
       }
-      thead .col-player{
-        position:static!important;
-        left:auto!important;
-        right:auto!important;
-        z-index:30!important;
+      #tableWrap .player-cell .player-text{
+        min-width:0!important;
+        text-align:left!important;
       }
-      .col-player .player-cell{position:relative;z-index:1;}
-      .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
-      #pwStickyHeader .col-player .sort-btn{justify-content:center!important;text-align:center!important;}
-      .player-cell .player-text{min-width:0!important;text-align:left!important;}
-      .player-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;}
-      td.num{overflow:hidden;}
-      .delta{display:inline-flex!important;align-items:center;justify-content:center;gap:2px;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;vertical-align:middle;}
-      .delta .arrow{display:inline-block!important;flex:0 0 auto!important;margin:0!important;width:auto!important;}
-      .pw-status,.pw-percent{display:inline-flex!important;align-items:center;justify-content:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
-      .pw-status-dot{flex:0 0 auto;}
-      #pwStickyHeader .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.7);}
-      tbody .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.65);}
+      #tableWrap .player-name{
+        max-width:100%;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      #tableWrap td.num{overflow:hidden;}
+      #tableWrap .delta{
+        display:inline-flex!important;
+        align-items:center;
+        justify-content:center;
+        gap:2px;
+        max-width:100%;
+        min-width:0;
+        white-space:nowrap;
+        overflow:hidden;
+        vertical-align:middle;
+      }
+      #tableWrap .delta .arrow{
+        display:inline-block!important;
+        flex:0 0 auto!important;
+        margin:0!important;
+        width:auto!important;
+      }
+      #tableWrap .pw-status,
+      #tableWrap .pw-percent{
+        display:inline-flex!important;
+        align-items:center;
+        justify-content:center;
+        max-width:100%;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      #tableWrap .pw-status-dot{flex:0 0 auto;}
+      #tableWrap thead .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.7);}
+      #tableWrap tbody .col-player{box-shadow:6px 0 10px -10px rgba(0,0,0,.65);}
     `;
     document.head.appendChild(style);
   }
