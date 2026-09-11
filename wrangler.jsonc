@@ -6,6 +6,11 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/fpl*", "/team*"]
+    "run_worker_first": [
+      "/fpl*",
+      "/team*",
+      "/price-data*",
+      "/.netlify/functions/fpl*"
+    ]
   }
 }
