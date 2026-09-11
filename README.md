@@ -1,29 +1,28 @@
 # Price Watch — FPL price tracker
 
-## What's in the folder
-- `index.html` — the app (frozen player column, searchable/filterable table, live refresh and player details)
-- `manifest.json` + `sw.js` — installable PWA shell with offline caching and enhancement injection
-- `worker.js` — Cloudflare Worker for the FPL, team and price-predictor APIs
-- `wrangler.jsonc` — Cloudflare Worker + static assets configuration
-- `scripts/patch-index.js` — deterministic build transformation and structural validation
-- `scripts/verify-build.js` — standalone build-output and PWA-state smoke test
-- `functions/` and `netlify/` — legacy deployment handlers retained for reference while Cloudflare is the primary deployment target
+## Project structure
+- `index.html` — the app UI and client-side data loading
+- `_worker.js` — Cloudflare Pages Advanced Mode worker for `/fpl`, `/team` and `/price-data`
+- `manifest.json` + `sw.js` — installable PWA and service-worker cache
+- `icon-192.png` + `icon-512.png` — PWA icons
+- `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side enhancements
+- `scripts/patch-index.js` — deterministic Pages build transformation and built-in structural verification
 
-## Cloudflare deployment
+Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files are no longer part of the repository.
 
-Cloudflare Workers is the primary deployment target. Set the Workers Build command to:
+## Cloudflare Pages deployment
+
+Use the repository's `Reorg` branch in Cloudflare Pages with this build command:
 
 ```text
-node scripts/patch-index.js && node scripts/verify-build.js
+node scripts/patch-index.js
 ```
 
-Then deploy with `npx wrangler deploy`.
-
-The build step produces the final `index.html`; the Cloudflare Worker serves that HTML and handles the `/fpl`, `/team` and `/price-data` API routes. The service worker adds player-photo, scrolling and local-state enhancements for the installed/served app.
+The build script transforms `index.html` into the final app and verifies the required table, predictor, snapshot, and PWA structures before completing. The Pages output uses `_worker.js` in Advanced Mode. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
 
 ## FPL data
 
-The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player payloads, and polls every 3 minutes plus when the tab becomes visible. Price predictor data is loaded separately from `/price-data` with a direct LiveFPL fallback. The price-change countdown uses UK midnight and is shown only in the dashboard card.
+The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player payloads, and refreshes periodically plus when the tab becomes visible. Price-predictor data is loaded separately from `/price-data` with a direct LiveFPL fallback. The price-change countdown uses UK midnight and is shown in the dashboard card.
 
 ## Columns
 
@@ -38,4 +37,4 @@ The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player 
 - **Total Points** — season total FPL points
 - **Owned** — percentage of managers who own the player
 
-Player photos use multiple Premier League asset paths and fall back to a team-colored jersey when no player image is available. The table defaults to price-change status order and can be manually sorted by any column.
+Player photos use multiple Premier League asset paths and fall back to a team-colored jersey when no player image is available. The table defaults to price-change ordering and can be manually sorted by any column.

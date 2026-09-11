@@ -56,6 +56,15 @@
 
   function firstSortDirection(key){return key==="name"||key==="priceProgress"?"asc":"desc";}
 
+  function defaultSort(){
+    var progress=document.querySelector('th[data-key="priceProgress"] .sort-btn');
+    if(!progress)return;
+    var state=read();
+    if(state.sortKey)return;
+    progress.click();
+    setTimeout(function(){progress.click();},0);
+  }
+
   function restore(){
     var s=read();
     delete s.watchlistOnly;
@@ -87,6 +96,8 @@
           if(s.sortDir!==dir)btn.click();
         }
       }
+    } else {
+      defaultSort();
     }
   }
 

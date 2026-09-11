@@ -23,12 +23,17 @@
       footer.style.flex="none";
     }
 
-    // Keep the most useful filter first: All, then My Team, then the other filters.
+    // Keep the most useful filters first: All, My Team, Favourites, then the other filters.
     var posBar=document.getElementById("posBar");
     var all=posBar && posBar.querySelector('[data-pos="ALL"]');
     var myTeam=posBar && document.getElementById("myTeamOnly");
-    if(posBar && all && myTeam){
-      posBar.insertBefore(myTeam, all.nextSibling);
+    var favourites=posBar && document.getElementById("favoritesOnly");
+    if(posBar && all){
+      if(myTeam)posBar.insertBefore(myTeam, all.nextSibling);
+      if(favourites){
+        var anchor=myTeam || all;
+        posBar.insertBefore(favourites, anchor.nextSibling);
+      }
     }
   }
 
