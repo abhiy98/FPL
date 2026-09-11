@@ -66,8 +66,12 @@
     refreshButton=document.getElementById("refreshBtn");
     if(!refreshButton || !menu)return;
 
+    var placeholder=menu.querySelector("[data-team-action='refresh']");
+    if(placeholder)placeholder.remove();
+
     refreshButton.className="pw-menu-refresh";
     refreshButton.setAttribute("type","button");
+    refreshButton.setAttribute("data-team-action","refresh");
     refreshButton.textContent="Refresh";
     refreshButton.innerHTML="Refresh";
     refreshButton.removeAttribute("aria-label");
