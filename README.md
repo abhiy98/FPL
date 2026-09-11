@@ -8,7 +8,7 @@
 - `jersey-fix.js`, `scroll-fix.js`, `pwa-enhance.js` — client-side enhancements
 - `scripts/patch-index.js` — deterministic Pages build transformation and built-in structural verification
 
-Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files have been removed.
+Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files are no longer part of the repository.
 
 ## Cloudflare Pages deployment
 
