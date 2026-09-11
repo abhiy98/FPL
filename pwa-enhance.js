@@ -75,6 +75,8 @@
       .col-player{background-clip:padding-box!important;}
       .col-player{min-width:164px!important;max-width:164px!important;}
       .player-cell{justify-content:flex-start!important;gap:7px!important;padding-left:7px!important;padding-right:7px!important;}
+      thead .col-player .sort-btn{justify-content:center!important;text-align:center!important;}
+      thead .col-player .sort-arrows{margin-left:2px;}
       .player-cell .player-text{min-width:0!important;text-align:left!important;}
       .player-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;}
       td.num{overflow:hidden;}
