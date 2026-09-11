@@ -182,10 +182,6 @@ async function handleAsset(request, env) {
   if (!response.ok || !contentType.includes("text/html")) return response;
 
   let html = await response.text();
-  const legacyProxy = '{ build: function(u){ return "/.netlify/functions/fpl"; }, parse: function(res){ return res.json(); } }';
-  const canonicalProxy = '{ build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace(BOOTSTRAP_URL.replace(/bootstrap-static\\/$/,""),"")); }, parse: function(res){ return res.json(); } }';
-  if (html.includes(legacyProxy)) html = html.replace(legacyProxy, canonicalProxy);
-
   if (!html.includes("/jersey-fix.js")) html = html.replace(/<\/body>/i, '<script src="/jersey-fix.js"></script></body>');
   if (!html.includes("/scroll-fix.js")) html = html.replace(/<\/body>/i, '<script src="/scroll-fix.js"></script></body>');
   if (!html.includes("/pwa-enhance.js")) html = html.replace(/<\/body>/i, '<script src="/pwa-enhance.js"></script></body>');
@@ -202,7 +198,7 @@ async function handleAsset(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === "/fpl" || url.pathname === "/.netlify/functions/fpl") return handleFpl(url);
+    if (url.pathname === "/fpl") return handleFpl(url);
     if (url.pathname === "/price-data") return handlePriceData();
     if (url.pathname === "/team") return handleTeam(url);
     if (url.pathname === "/" || url.pathname === "/index.html") return handleAsset(request, env);
