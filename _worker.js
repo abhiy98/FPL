@@ -203,7 +203,10 @@ export default {
     if (url.pathname === "/fpl") return handleFpl(url);
     if (url.pathname === "/price-data") return handlePriceData();
     if (url.pathname === "/team") return handleTeam(url);
-    if (url.pathname === "/transfers") return handleAsset(new Request(new URL("/transfers.html", url), request), env);
+    if (url.pathname === "/transfers" || url.pathname.endsWith("/transfers.html")) {
+      const assetRequest = url.pathname.endsWith("/transfers.html") ? request : new Request(new URL("/transfers.html", url), request);
+      return handleAsset(assetRequest, env);
+    }
     if (url.pathname === "/" || url.pathname === "/index.html") return handleAsset(request, env);
     return env.ASSETS.fetch(request);
   }
