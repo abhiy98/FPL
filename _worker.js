@@ -31,7 +31,7 @@ async function handleFpl(url) {
   const requestedPath = String(url.searchParams.get("path") || "bootstrap-static/")
     .replace(/^https?:\/\/[^/]+\/api\//i, "")
     .replace(/^\/+/, "");
-  const allowed = /^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/event\/\d+\/picks\/?)$/;
+  const allowed = /^(bootstrap-static\/|element-summary\/\d+\/?|entry\/\d+\/?|entry\/\d+\/(?:history|transfers)\/?|entry\/\d+\/event\/\d+\/picks\/?)$/;
   if (!allowed.test(requestedPath)) return json({ error: "Unsupported FPL API path" }, 400);
 
   try {
@@ -186,6 +186,7 @@ async function handleAsset(request, env) {
   if (!html.includes("/scroll-fix.js")) html = html.replace(/<\/body>/i, '<script src="/scroll-fix.js"></script></body>');
   if (!html.includes("/pwa-enhance.js")) html = html.replace(/<\/body>/i, '<script src="/pwa-enhance.js"></script></body>');
   if (!html.includes("/team-menu.js")) html = html.replace(/<\/body>/i, '<script src="/team-menu.js"></script></body>');
+  if (!html.includes("/transfers-nav.js")) html = html.replace(/<\/body>/i, '<script src="/transfers-nav.js"></script></body>');
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
@@ -202,6 +203,7 @@ export default {
     if (url.pathname === "/fpl") return handleFpl(url);
     if (url.pathname === "/price-data") return handlePriceData();
     if (url.pathname === "/team") return handleTeam(url);
+    if (url.pathname === "/transfers") return handleAsset(new Request(new URL("/transfers.html", url), request), env);
     if (url.pathname === "/" || url.pathname === "/index.html") return handleAsset(request, env);
     return env.ASSETS.fetch(request);
   }
