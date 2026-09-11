@@ -62,6 +62,7 @@
     var state=read();
     if(state.sortKey)return;
     progress.click();
+    setTimeout(function(){progress.click();},0);
   }
 
   function restore(){
