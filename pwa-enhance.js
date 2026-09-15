@@ -2,13 +2,13 @@
   "use strict";
 
   var KEY="pricewatch:pwa-state";
+  var SORT_VERSION=2;
   var saveTimer=0;
   var pageScroll=null;
   var stickyBar=null;
   var stickyPlayer=null;
   var stickyRest=null;
   var stickyRestTable=null;
-  var absoluteSortActive=true;
 
   function cleanUi(){
     try{localStorage.removeItem("pricewatch:watchlist");}catch(e){}
@@ -24,33 +24,6 @@
     var favourites=document.getElementById("favoritesOnly");
     if(all&&myTeam&&all.nextSibling!==myTeam)posBar.insertBefore(myTeam,all.nextSibling);
     if(myTeam&&favourites&&myTeam.nextSibling!==favourites)posBar.insertBefore(favourites,myTeam.nextSibling);
-  }
-
-  function applyAbsoluteProgressSort(){
-    if(!absoluteSortActive)return;
-    var tbody=document.getElementById("tbody");
-    if(!tbody)return;
-    var rows=Array.from(tbody.querySelectorAll("tr[data-player-id]"));
-    if(rows.length<2)return;
-
-    rows.sort(function(a,b){
-      var av=parseFloat((a.cells[2]&&a.cells[2].textContent||"").replace(/[^0-9+\\-.]/g,""));
-      var bv=parseFloat((b.cells[2]&&b.cells[2].textContent||"").replace(/[^0-9+\\-.]/g,""));
-      if(!Number.isFinite(av))av=0;
-      if(!Number.isFinite(bv))bv=0;
-      var diff=Math.abs(bv)-Math.abs(av);
-      if(diff!==0)return diff;
-      return String(a.getAttribute("data-player-id")||"").localeCompare(String(b.getAttribute("data-player-id")||""));
-    });
-
-    var current=Array.from(tbody.querySelectorAll("tr[data-player-id]"));
-    var changed=false;
-    for(var i=0;i<rows.length;i++){
-      if(rows[i]!==current[i]){changed=true;break;}
-    }
-    if(!changed)return;
-
-    rows.forEach(function(row){tbody.appendChild(row);});
   }
 
   function hideFooter(){
@@ -210,26 +183,28 @@
 
   function write(patch){
     clearTimeout(saveTimer);
-    saveTimer=setTimeout(function(){try{var state=read();delete state.watchlistOnly;localStorage.setItem(KEY,JSON.stringify(Object.assign(state,patch)));}catch(e){}},80);
+    saveTimer=setTimeout(function(){try{var state=read();delete state.watchlistOnly;if(patch&&patch.sortKey)patch.sortVersion=SORT_VERSION;localStorage.setItem(KEY,JSON.stringify(Object.assign(state,patch)));}catch(e){}},80);
   }
 
   function firstSortDirection(key){return key==="name"||key==="priceProgress"?"asc":"desc";}
 
-  function defaultSort(){
-    absoluteSortActive=true;
-    applyAbsoluteProgressSort();
-  }
+  function defaultSort(){return;}
 
   function restore(){
     var s=read();
     cleanUi();
-    absoluteSortActive=!s.sortKey;
+    if(s.sortVersion!==SORT_VERSION){
+      delete s.sortKey;
+      delete s.sortDir;
+      s.sortVersion=SORT_VERSION;
+      try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}
+    }
     var input=document.getElementById("search");
     if(input&&s.search){input.value=s.search;input.dispatchEvent(new Event("input",{bubbles:true}));}
     if(s.pos){var chip=document.querySelector('.pos-chip[data-pos="'+s.pos+'"]');if(chip&&!chip.classList.contains("active"))chip.click();}
     ["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){if(s[id]===true){var el=document.getElementById(id);if(el&&!el.classList.contains("active"))el.click();}});
     if(s.teamId){var teamInput=document.getElementById("pwTeamId");if(teamInput)teamInput.value=s.teamId;}
-    if(s.sortKey){var th=document.querySelector('th[data-key="'+s.sortKey+'"]'),btn=th&&th.querySelector(".sort-btn");if(btn){var dir=firstSortDirection(s.sortKey);if(!(s.sortKey==="priceProgress"&&s.sortDir==="asc")){btn.click();if(s.sortDir!==dir)btn.click();}}}else defaultSort();
+    if(s.sortKey){var th=document.querySelector('th[data-key="'+s.sortKey+'"]'),btn=th&&th.querySelector(".sort-btn");if(btn){var dir=firstSortDirection(s.sortKey);if(!(s.sortKey==="priceProgress"&&s.sortDir==="asc")){btn.click();if(s.sortDir!==dir)btn.click();}}}
     cleanUi();
   }
 
@@ -238,7 +213,7 @@
     if(input)input.addEventListener("input",function(){write({search:input.value});});
     var posBar=document.getElementById("posBar");
     if(posBar)posBar.addEventListener("click",function(){var active=document.querySelector(".pos-chip[data-pos].active"),patch={pos:active?active.getAttribute("data-pos"):"ALL"};["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){var el=document.getElementById(id);if(el)patch[id]=el.classList.contains("active");});write(patch);});
-    document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){btn.addEventListener("click",function(){absoluteSortActive=false;var th=btn.closest("th"),patch={sortKey:th&&th.getAttribute("data-key")};setTimeout(function(){var svgs=th?th.querySelectorAll(".sort-arrows svg"):[];patch.sortDir=svgs.length===2&&svgs[0].style.opacity==="1"?"asc":"desc";write(patch);},0);});});
+    document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){btn.addEventListener("click",function(){var th=btn.closest("th"),patch={sortKey:th&&th.getAttribute("data-key")};setTimeout(function(){var svgs=th?th.querySelectorAll(".sort-arrows svg"):[];patch.sortDir=svgs.length===2&&svgs[0].style.opacity==="1"?"asc":"desc";patch.sortVersion=SORT_VERSION;write(patch);},0);});});
     var teamInput=document.getElementById("pwTeamId");
     if(teamInput)teamInput.addEventListener("input",function(){write({teamId:teamInput.value.trim()});});
     document.documentElement.style.setProperty("--pw-bottom-safe","env(safe-area-inset-bottom, 0px)");
@@ -250,7 +225,7 @@
     applyMobileScroll();
     movePriceChangeFirst();
     cleanUi();
-    var observer=new MutationObserver(function(){applyMobileScroll();movePriceChangeFirst();cleanUi();applyAbsoluteProgressSort();});
+    var observer=new MutationObserver(function(){applyMobileScroll();movePriceChangeFirst();cleanUi();});
     observer.observe(document.body,{childList:true,subtree:true});
     bind();
     setTimeout(restore,0);
