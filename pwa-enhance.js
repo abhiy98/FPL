@@ -9,6 +9,7 @@
   var stickyPlayer=null;
   var stickyRest=null;
   var stickyRestTable=null;
+  var restoringSort=false;
 
   function cleanUi(){
     try{localStorage.removeItem("pricewatch:watchlist");}catch(e){}
@@ -204,7 +205,9 @@
     if(s.pos){var chip=document.querySelector('.pos-chip[data-pos="'+s.pos+'"]');if(chip&&!chip.classList.contains("active"))chip.click();}
     ["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){if(s[id]===true){var el=document.getElementById(id);if(el&&!el.classList.contains("active"))el.click();}});
     if(s.teamId){var teamInput=document.getElementById("pwTeamId");if(teamInput)teamInput.value=s.teamId;}
+    restoringSort=true;
     if(s.sortKey){var th=document.querySelector('th[data-key="'+s.sortKey+'"]'),btn=th&&th.querySelector(".sort-btn");if(btn){var dir=firstSortDirection(s.sortKey);if(!(s.sortKey==="priceProgress"&&s.sortDir==="asc")){btn.click();if(s.sortDir!==dir)btn.click();}}}
+    restoringSort=false;
     cleanUi();
   }
 
@@ -213,6 +216,30 @@
     if(input)input.addEventListener("input",function(){write({search:input.value});});
     var posBar=document.getElementById("posBar");
     if(posBar)posBar.addEventListener("click",function(){var active=document.querySelector(".pos-chip[data-pos].active"),patch={pos:active?active.getAttribute("data-pos"):"ALL"};["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){var el=document.getElementById(id);if(el)patch[id]=el.classList.contains("active");});write(patch);});
+
+    // Progress % cycles: signed high→low, signed low→high, absolute high→low.
+    document.addEventListener("click",function(event){
+      if(restoringSort)return;
+      var btn=event.target.closest&&event.target.closest('th[data-key="priceProgress"] .sort-btn');
+      if(!btn)return;
+      var state=read(),key=state.sortKey,dir=state.sortDir;
+      var cycle=key==="priceProgress"?(dir==="asc"?2:1):0;
+      if(cycle===0){
+        // First click: signed high→low.
+        return;
+      }
+      if(cycle===1){
+        // Second click: signed low→high.
+        return;
+      }
+      // Third click: let the real sorter consume the internal absolute key.
+      var th=btn.closest("th");
+      if(th){
+        th.setAttribute("data-key","__defaultAbsProgress");
+        setTimeout(function(){th.setAttribute("data-key","priceProgress");},0);
+      }
+    },true);
+
     document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){btn.addEventListener("click",function(){var th=btn.closest("th"),patch={sortKey:th&&th.getAttribute("data-key")};setTimeout(function(){var svgs=th?th.querySelectorAll(".sort-arrows svg"):[];patch.sortDir=svgs.length===2&&svgs[0].style.opacity==="1"?"asc":"desc";patch.sortVersion=SORT_VERSION;write(patch);},0);});});
     var teamInput=document.getElementById("pwTeamId");
     if(teamInput)teamInput.addEventListener("input",function(){write({teamId:teamInput.value.trim()});});
