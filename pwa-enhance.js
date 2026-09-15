@@ -181,6 +181,43 @@
     if(card&&top.firstElementChild!==card)top.insertBefore(card,top.firstElementChild);
   }
 
+  function syncBudgetCard(){
+    var dashboard=document.getElementById("pwDashboard"),top=dashboard&&dashboard.querySelector(".pw-dashboard-top");
+    if(!top)return;
+    var card=document.getElementById("pwBudgetCard");
+    if(!card){
+      var biggest=document.getElementById("pwBiggestMove"),oldCard=biggest&&biggest.closest(".pw-stat");
+      if(!oldCard)return;
+      card=oldCard;
+      card.id="pwBudgetCard";
+    }
+
+    var clearTeam=document.getElementById("pwClearTeam");
+    var connected=!!(clearTeam&&getComputedStyle(clearTeam).display!=="none");
+    var label=card.querySelector(".label");
+    var value=card.querySelector(".value");
+    var hint=card.querySelector(".hint");
+    if(connected){
+      var note=document.getElementById("pwTeamNote"),text=note?note.textContent:"",match=text.match(/Bank £([0-9.]+)m/);
+      var nextValue=match?"£"+match[1]+"m":"—";
+      if(label&&label.textContent!=="Budget")label.textContent="Budget";
+      if(value&&value.textContent!==nextValue)value.textContent=nextValue;
+      if(hint&&hint.textContent!=="available budget")hint.textContent="available budget";
+    }else{
+      if(label&&label.textContent!=="No Team")label.textContent="No Team";
+      if(value&&value.textContent!=="—")value.textContent="—";
+      if(hint&&hint.textContent!=="connect your FPL team below")hint.textContent="connect your FPL team below";
+    }
+
+    var price=dashboard.querySelector("#pwDeadline")&&dashboard.querySelector("#pwDeadline").closest(".pw-stat");
+    var rising=dashboard.querySelector("#pwRisingCount")&&dashboard.querySelector("#pwRisingCount").closest(".pw-stat");
+    var falling=dashboard.querySelector("#pwFallingCount")&&dashboard.querySelector("#pwFallingCount").closest(".pw-stat");
+    var desired=[price,card,rising,falling].filter(function(item){return !!item;});
+    for(var i=0;i<desired.length;i++){
+      if(top.children[i]!==desired[i])top.insertBefore(desired[i],top.children[i]||null);
+    }
+  }
+
   function read(){try{return JSON.parse(localStorage.getItem(KEY)||"{}");}catch(e){return {};}}
 
   function write(patch){
@@ -256,9 +293,9 @@
     applyMobileScroll();
     movePriceChangeFirst();
     cleanUi();
-    var observer=new MutationObserver(function(){applyMobileScroll();movePriceChangeFirst();cleanUi();});
-    observer.observe(document.body,{childList:true,subtree:true});
+    syncBudgetCard();
     bind();
+    setInterval(syncBudgetCard,1000);
     setTimeout(restore,0);
     setTimeout(restoreScroll,60);
   }
