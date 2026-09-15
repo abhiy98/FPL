@@ -60,13 +60,14 @@ mustReplace("header alignment", /th\.num button\.sort-btn\{justify-content:flex-
 mustReplace("ownership alignment", /\.own-bar-wrap\{display:flex;align-items:center;justify-content:flex-end;/, ".own-bar-wrap{display:flex;align-items:center;justify-content:center;");
 mustReplace("player alignment", /\.player-cell\{display:flex;align-items:center;gap:9px;/, ".player-cell{display:flex;align-items:center;justify-content:center;gap:9px;");
 
-// Persisted default is absolute Progress %, with explicit three-state Progress sorting.
+// Persist the selected sort in the app rather than the presentation shim.
 mustReplace("saved sort anchor", /  var state = \{/, `  var SORT_STORE_KEY="pricewatch:sort-state";
   function loadSavedSort(){try{var saved=JSON.parse(localStorage.getItem(SORT_STORE_KEY)||"{}");if(saved&&typeof saved==="object")return saved;}catch(e){}return {};}\n  var savedSort=loadSavedSort();\n\n  var state = {`);
 mustReplace("default progress sort", /sortKey: "total",\n    sortDir: "desc",/, 'sortKey: savedSort.sortKey || "__defaultAbsProgress",\n    sortDir: savedSort.sortDir || "desc",');
 mustReplace("progress cycle state", /  var tbody = document\.getElementById\("tbody"\);/, `  var progressSortCycle=state.sortKey==="__defaultAbsProgress"?2:(state.sortKey==="priceProgress"?(state.sortDir==="asc"?1:0):2);
   function saveSort(){try{localStorage.setItem(SORT_STORE_KEY,JSON.stringify({sortKey:state.sortKey,sortDir:state.sortDir}));}catch(e){}}
-\n  var tbody = document.getElementById("tbody");`);
+
+  var tbody = document.getElementById("tbody");`);
 
 // Add the official daily price-change countdown (00:00 Europe/London).
 mustReplace("price countdown", /  function renderDashboard\(\)\{/, `  function londonOffsetMinutes(at){var ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(at),v={};ps.forEach(function(p){v[p.type]=p.value;});return (Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute,+v.second)-at.getTime())/60000;}
@@ -122,7 +123,7 @@ mustReplace("dashboard renderer", /  function renderDashboard\(\)\{[\s\S]*?\n  \
 
   function escapeHtml`);
 
-// Replace the native click handler with one owner for all sort behavior.
+// One owner for all sort behavior. Progress cycles signed desc -> signed asc -> absolute desc.
 mustReplace("sort handler", /  document\.querySelectorAll\("th\[data-key\] \.sort-btn"\)\.forEach\(function\(btn\)\{[\s\S]*?  \}\);\n\n  searchInput\.addEventListener/, `  document.querySelectorAll("th[data-key] .sort-btn").forEach(function(btn){
     btn.addEventListener("click",function(){
       var th=btn.closest("th"),key=th&&th.getAttribute("data-key");
@@ -145,6 +146,13 @@ mustReplace("sort handler", /  document\.querySelectorAll\("th\[data-key\] \.sor
 
   searchInput.addEventListener`);
 
+// Start the independently loaded predictor and keep the UK-midnight countdown ticking.
+mustReplace("predictor startup", /  refresh\(false\);\n  setInterval\(function\(\)\{ refresh\(false\); \}, POLL_MS\);/, `  refresh(false);
+  loadPricePredictor();
+  setInterval(function(){ refresh(false); }, POLL_MS);
+  setInterval(loadPricePredictor,15*60*1000);
+  setInterval(function(){var t=document.getElementById('pwDeadline');if(t)t.textContent=formatPriceChangeCountdown();},1000);`);
+
 if ((html.match(/<th\b/g)||[]).length < 10) throw new Error("Build verification failed: expected 10 headers");
 if (!/Total Points/.test(html)||!/p\.points/.test(html)) throw new Error("Build verification failed: Total Points missing");
 if (!/Progress %/.test(html)||!/Prediction %/.test(html)||!/pricePercentMarkup/.test(html)) throw new Error("Build verification failed: predictor percentages missing");
@@ -155,6 +163,7 @@ if (!/version:2/.test(html)) throw new Error("Build verification failed: snapsho
 if (!/__defaultAbsProgress/.test(html)) throw new Error("Build verification failed: absolute Progress sort missing");
 if (!/Math\.abs\(priceMetric\(a,"progress"\)\|\|0\)/.test(html)) throw new Error("Build verification failed: absolute Progress comparator missing");
 if (!/pricewatch:sort-state/.test(html)) throw new Error("Build verification failed: sort persistence missing");
+if (!/loadPricePredictor\(\);/.test(html)) throw new Error("Build verification failed: predictor startup missing");
 
 fs.writeFileSync(file, html);
 console.log("Price Watch build patch complete and verified");
