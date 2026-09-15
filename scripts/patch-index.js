@@ -35,8 +35,8 @@ mustReplace("header alignment", /th\.num button\.sort-btn\{justify-content:flex-
 mustReplace("ownership alignment", /\.own-bar-wrap\{display:flex;align-items:center;justify-content:flex-end;/, ".own-bar-wrap{display:flex;align-items:center;justify-content:center;");
 mustReplace("player alignment", /\.player-cell\{display:flex;align-items:center;gap:9px;/, ".player-cell{display:flex;align-items:center;justify-content:center;gap:9px;");
 
-// Default the canonical app state to most-negative price-progress first.
-mustReplace("default progress sort", /sortKey: "total",\n    sortDir: "desc",/, 'sortKey: "priceProgress",\n    sortDir: "asc",');
+// Default to absolute Progress % ordering: highest magnitude first, regardless of sign.
+mustReplace("default progress sort", /sortKey: "total",\n    sortDir: "desc",/, 'sortKey: "__defaultAbsProgress",\n    sortDir: "desc",');
 
 // Add the official daily price-change countdown (00:00 Europe/London).
 mustReplace("price countdown", /  function renderDashboard\(\)\{/, `  function londonOffsetMinutes(at){var ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(at),v={};ps.forEach(function(p){v[p.type]=p.value;});return (Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute,+v.second)-at.getTime())/60000;}\n  function formatPriceChangeCountdown(){var now=new Date(),ps=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now),v={};ps.forEach(function(p){v[p.type]=p.value;});var targetBase=Date.UTC(+v.year,+v.month-1,+v.day+1,0,0,0),target=targetBase-londonOffsetMinutes(now)*60000;target=targetBase-londonOffsetMinutes(new Date(target))*60000;var diff=Math.max(0,target-now.getTime()),total=Math.floor(diff/1000),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60;return h+'h '+String(m).padStart(2,'0')+'m '+String(s).padStart(2,'0')+'s';}\n\n  function renderDashboard(){`);
@@ -52,7 +52,7 @@ mustReplace("team loader", /  async function loadMyTeam\(\)\{[\s\S]*?\n  \}\n  a
 
 mustReplace("snapshot", /  function persistSnapshot\(players, at\)\{[\s\S]*?\n  \}\n\n  function loadSnapshot\(\)\{[\s\S]*?\n  \}\n/, `  function persistSnapshot(players,at){try{var data=players.map(function(p){return [p.id,p.name,p.team,p.pos,p.gw1,p.now,p.total,p.event,p.own,p.status,p.teamName,p.transfersIn,p.transfersOut,p.netTransfers,p.points,p.form,p.epNext,p.minutes];});localStorage.setItem(STORE_KEY_SNAPSHOT,JSON.stringify({version:2,at:at.toISOString(),data:data}));}catch(e){}}\n  function loadSnapshot(){try{var raw=localStorage.getItem(STORE_KEY_SNAPSHOT);if(!raw)return null;var parsed=JSON.parse(raw);if(parsed.version!==2||!Array.isArray(parsed.data))return null;var players=parsed.data.map(function(a){return{id:a[0],name:a[1],team:a[2],pos:a[3],gw1:a[4],now:a[5],total:a[6],event:a[7],own:a[8],status:a[9],teamName:a[10]||a[2],transfersIn:a[11]||0,transfersOut:a[12]||0,netTransfers:a[13]||0,points:a[14]||0,form:a[15]||0,epNext:a[16]||0,minutes:a[17]||0};});return{players:players,at:parsed.at};}catch(e){return null;}}\n`);
 
-mustReplace("status sorting", /      else \{ av = a\[key\]; bv = b\[key\]; \}/, '      else if(key==="priceStatusRank"){av=priceStatus(a).rank;bv=priceStatus(b).rank;} else if(key==="priceProgress"){av=priceMetric(a,"progress");bv=priceMetric(b,"progress");} else if(key==="pricePrediction"){av=priceMetric(a,"predictedProgress");bv=priceMetric(b,"predictedProgress");} else { av = a[key] == null ? 0 : a[key]; bv = b[key] == null ? 0 : b[key]; }');
+mustReplace("status sorting", /      else \{ av = a\[key\]; bv = b\[key\]; \}/, '      else if(key==="__defaultAbsProgress"){av=Math.abs(priceMetric(a,"progress")||0);bv=Math.abs(priceMetric(b,"progress")||0);} else if(key==="priceStatusRank"){av=priceStatus(a).rank;bv=priceStatus(b).rank;} else if(key==="priceProgress"){av=priceMetric(a,"progress");bv=priceMetric(b,"progress");} else if(key==="pricePrediction"){av=priceMetric(a,"predictedProgress");bv=priceMetric(b,"predictedProgress");} else { av = a[key] == null ? 0 : a[key]; bv = b[key] == null ? 0 : b[key]; }');
 mustReplace("predictor startup", /  refresh\(false\);\n  setInterval\(function\(\)\{ refresh\(false\); \}, POLL_MS\);/, `  refresh(false);\n  loadPricePredictor();\n  setInterval(function(){ refresh(false); }, POLL_MS);\n  setInterval(loadPricePredictor,15*60*1000);\n  setInterval(function(){var t=document.getElementById('pwDeadline');if(t)t.textContent=formatPriceChangeCountdown();},1000);`);
 mustReplace("dashboard countdown", /    var ev=currentEvent\(state\.events\); if\(dl\)dl\.textContent=ev\?formatCountdown\(ev\.deadline_time\):'—';/, "    if(dl)dl.textContent=formatPriceChangeCountdown();");
 
@@ -62,6 +62,8 @@ if (!/Progress %/.test(html)||!/Prediction %/.test(html)||!/pricePercentMarkup/.
 if ((html.match(/id="pwDeadline"/g)||[]).length !== 1) throw new Error("Build verification failed: Price Change card is not unique");
 if (/class="pw-price-timer"/.test(html)) throw new Error("Build verification failed: header timer remains");
 if (!/version:2/.test(html)) throw new Error("Build verification failed: snapshot version missing");
+if (!/__defaultAbsProgress/.test(html)) throw new Error("Build verification failed: absolute Progress sort missing");
+if (!/Math\.abs\(priceMetric\(a,"progress"\)\|\|0\)/.test(html)) throw new Error("Build verification failed: absolute Progress comparator missing");
 
 fs.writeFileSync(file, html);
 console.log("Price Watch build patch complete and verified");
