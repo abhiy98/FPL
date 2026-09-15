@@ -29,15 +29,40 @@
     var observer=new MutationObserver(function(){cleanDeprecatedUi();});observer.observe(tbody,{childList:true});cleanDeprecatedUi();
   }
 
-  function syncSortHeader(){
-    var saved=read(SORT_KEY),absolute=saved.sortKey==="__defaultAbsProgress",progress=document.querySelector('th[data-key="priceProgress"]');
-    if(!progress)return;
-    progress.classList.toggle("sorted",absolute||saved.sortKey==="priceProgress");
-    var arrows=progress.querySelectorAll(".sort-arrows svg");
-    if(arrows.length===2){
-      arrows[0].style.opacity=(!absolute&&saved.sortKey==="priceProgress"&&saved.sortDir==="asc")?"1":"0.35";
-      arrows[1].style.opacity=((absolute||saved.sortKey==="priceProgress")&&saved.sortDir==="desc")?"1":"0.35";
+  function showRefreshLoading(){
+    var tbody=document.getElementById("tbody");
+    if(tbody){
+      var count=document.querySelectorAll("#tableWrap thead th").length||10,rows=[];
+      for(var r=0;r<2;r++){
+        var cells=[];
+        for(var c=0;c<count;c++){
+          var width=c===0?(r===0?110:90):(c<=3?48:36);
+          cells.push('<td'+(c===0?' class="col-player"':'')+'><div class="skeleton" style="width:'+width+'px;margin:'+(c===0?'':'auto')+'"></div></td>');
+        }
+        rows.push('<tr class="skeleton-row">'+cells.join('')+'</tr>');
+      }
+      tbody.innerHTML=rows.join('');
     }
+    document.querySelectorAll("#pwDashboard .pw-stat .value").forEach(function(value){value.textContent="—";});
+  }
+
+  function observeRefreshCompletion(){
+    var status=document.getElementById("statusText");if(!status||!window.MutationObserver)return;
+    var observer=new MutationObserver(function(){
+      var text=status.textContent||"";
+      if(text!=="Refreshing…"&&text.indexOf("Connecting")!==0&&text.indexOf("Checking")!==0){
+        observer.disconnect();
+      }
+    });
+    observer.observe(status,{childList:true,characterData:true,subtree:true});
+  }
+
+  function bindRefreshLoading(){
+    document.addEventListener("click",function(event){
+      if(!event.target.closest||!event.target.closest("#refreshBtn"))return;
+      showRefreshLoading();
+      observeRefreshCompletion();
+    },true);
   }
 
   function syncSticky(){
@@ -82,7 +107,6 @@
   function bindPersistence(){
     var input=document.getElementById("search");if(input)input.addEventListener("input",function(){write({search:input.value});});
     var posBar=document.getElementById("posBar");if(posBar)posBar.addEventListener("click",function(){var active=document.querySelector(".pos-chip[data-pos].active"),patch={pos:active?active.getAttribute("data-pos"):"ALL"};["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){var el=document.getElementById(id);if(el)patch[id]=el.classList.contains("active");});write(patch);});
-    document.addEventListener("click",function(event){if(event.target.closest&&event.target.closest('th[data-key] .sort-btn'))setTimeout(syncSortHeader,0);},false);
   }
 
   function restoreUi(){
@@ -90,13 +114,13 @@
     if(input&&s.search){input.value=s.search;input.dispatchEvent(new Event("input",{bubbles:true}));}
     if(s.pos){var chip=document.querySelector('.pos-chip[data-pos="'+s.pos+'"]');if(chip&&!chip.classList.contains("active"))chip.click();}
     ["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){if(s[id]===true){var el=document.getElementById(id);if(el&&!el.classList.contains("active"))el.click();}});
-    cleanDeprecatedUi();syncSortHeader();
+    cleanDeprecatedUi();
   }
 
   function restoreScroll(){var s=read(UI_KEY);if(pageScroll)pageScroll.scrollTo(0,Number.isFinite(s.scrollTop)?s.scrollTop:0);syncSticky();}
 
   function start(){
-    applyMobileScroll();observeDeprecatedUi();bindPersistence();setTimeout(restoreUi,0);setTimeout(restoreScroll,80);setInterval(syncSortHeader,1000);
+    applyMobileScroll();observeDeprecatedUi();bindPersistence();bindRefreshLoading();setTimeout(restoreUi,0);setTimeout(restoreScroll,80);
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
