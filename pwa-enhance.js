@@ -21,8 +21,8 @@
     var all=posBar.querySelector('.pos-chip[data-pos="ALL"]');
     var myTeam=document.getElementById("myTeamOnly");
     var favourites=document.getElementById("favoritesOnly");
-    if(all&&myTeam)posBar.insertBefore(myTeam,all.nextSibling);
-    if(myTeam&&favourites)posBar.insertBefore(favourites,myTeam.nextSibling);
+    if(all&&myTeam&&all.nextSibling!==myTeam)posBar.insertBefore(myTeam,all.nextSibling);
+    if(myTeam&&favourites&&myTeam.nextSibling!==favourites)posBar.insertBefore(favourites,myTeam.nextSibling);
   }
 
   function hideFooter(){
