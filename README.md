@@ -1,12 +1,12 @@
 # Price Watch — FPL price tracker
 
 ## Project structure
-- `index.html` — the app UI and client-side data loading
-- `_worker.js` — Cloudflare Pages Advanced Mode worker for `/fpl`, `/team` and `/price-data`
-- `manifest.json` + `sw.js` — installable PWA and service-worker cache
+- `index.html` — canonical app UI, state, data loading, dashboard, table rendering and sorting
+- `_worker.js` — Cloudflare Pages Advanced Mode worker for `/fpl`, `/team` and `/price-data`, plus the single HTML enhancement injection point
+- `manifest.json` + `sw.js` — installable PWA and service-worker cache/offline layer
 - `icon-192.png` + `icon-512.png` — PWA icons
-- `jersey-fix.js`, `pwa-enhance.js` — client-side enhancements
-- `scripts/patch-index.js` — deterministic Pages build transformation and built-in structural verification
+- `jersey-fix.js`, `pwa-enhance.js`, `team-menu.js` — focused presentation enhancements
+- `scripts/patch-index.js` — deterministic Pages build transformation and structural verification
 
 Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files are no longer part of the repository.
 
@@ -18,7 +18,9 @@ Use the repository's `Reorg` branch in Cloudflare Pages with this build command:
 node scripts/patch-index.js
 ```
 
-The build script transforms `index.html` into the final app and verifies the required table, predictor, snapshot, and PWA structures before completing. The Pages output uses `_worker.js` in Advanced Mode. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
+The build script transforms `index.html` into the final app and verifies the required table, predictor, snapshot, dashboard, sorting, and PWA structures before completing. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
+
+The Cloudflare worker is the only layer that injects client enhancement scripts. The service worker only caches and serves those already-enhanced responses; it does not rewrite HTML.
 
 ## FPL data
 
@@ -26,7 +28,7 @@ The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player 
 
 ## Columns
 
-- **Player** — player name, position, club abbreviation and quick actions
+- **Player** — player name, position, club abbreviation and favourite action
 - **Status** — price-change likelihood from the predictor when available
 - **Progress %** — current price-change progress from the predictor
 - **Prediction %** — predicted overnight price-change progress
@@ -37,4 +39,4 @@ The app retrieves `bootstrap-static/` through `/fpl`, rejects incomplete player 
 - **Total Points** — season total FPL points
 - **Owned** — percentage of managers who own the player
 
-Player photos use multiple Premier League asset paths and fall back to a team-colored jersey when no player image is available. The table defaults to price-change ordering and can be manually sorted by any column.
+Player photos use multiple Premier League asset paths and fall back to a team-colored jersey when no player image is available. The table defaults to absolute Progress % magnitude and the Progress % header cycles through signed high→low, signed low→high, and absolute high→low. Other columns use standard two-state sorting and the selected sort persists locally.
