@@ -22,7 +22,7 @@
     },80);
   }
 
-  function cleanUi(){
+  function cleanDeprecatedUi(){
     try{localStorage.removeItem("pricewatch:watchlist");}catch(e){}
     var watchlist=document.getElementById("watchlistOnly");
     if(watchlist)watchlist.remove();
@@ -36,6 +36,14 @@
     var favourites=document.getElementById("favoritesOnly");
     if(all&&myTeam&&all.nextSibling!==myTeam)posBar.insertBefore(myTeam,all.nextSibling);
     if(myTeam&&favourites&&myTeam.nextSibling!==favourites)posBar.insertBefore(favourites,myTeam.nextSibling);
+  }
+
+  function observeDeprecatedUi(){
+    var tbody=document.getElementById("tbody");
+    if(!tbody||!window.MutationObserver)return;
+    var observer=new MutationObserver(function(){cleanDeprecatedUi();});
+    observer.observe(tbody,{childList:true});
+    cleanDeprecatedUi();
   }
 
   function hideFooter(){
@@ -69,11 +77,11 @@
     stickyRest.style.width=Math.max(0,window.innerWidth-playerWidth)+"px";
     stickyRest.scrollLeft=tableWrap.scrollLeft;
 
+    var restCells=stickyRestTable?stickyRestTable.querySelectorAll("th"):[];
     for(var i=0;i<sourceCells.length;i++){
       var width=sourceCells[i].getBoundingClientRect().width;
       var playerCell=i===0?stickyPlayer.querySelector("th"):null;
       if(playerCell){playerCell.style.width=width+"px";playerCell.style.minWidth=width+"px";}
-      var restCells=stickyRestTable?stickyRestTable.querySelectorAll("th"):[];
       var restCell=restCells[i-1];
       if(restCell){restCell.style.width=width+"px";restCell.style.minWidth=width+"px";}
     }
@@ -238,7 +246,7 @@
         if(el&&!el.classList.contains("active"))el.click();
       }
     });
-    cleanUi();
+    cleanDeprecatedUi();
   }
 
   function restoreScroll(){
@@ -249,7 +257,7 @@
 
   function start(){
     applyMobileScroll();
-    cleanUi();
+    observeDeprecatedUi();
     bindPersistence();
     setTimeout(restoreUi,0);
     setTimeout(restoreScroll,80);
