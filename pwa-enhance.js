@@ -9,11 +9,20 @@
   var stickyRest=null;
   var stickyRestTable=null;
 
-  function removeWatchlist(){
-    var toggle=document.getElementById("watchlistOnly");
-    if(toggle)toggle.remove();
+  function cleanUi(){
+    try{localStorage.removeItem("pricewatch:watchlist");}catch(e){}
+    var watchlist=document.getElementById("watchlistOnly");
+    if(watchlist)watchlist.remove();
     document.querySelectorAll(".watch-btn").forEach(function(el){el.remove();});
     document.querySelectorAll(".pw-row-watch").forEach(function(row){row.classList.remove("pw-row-watch");});
+
+    var posBar=document.getElementById("posBar");
+    if(!posBar)return;
+    var all=posBar.querySelector('.pos-chip[data-pos="ALL"]');
+    var myTeam=document.getElementById("myTeamOnly");
+    var favourites=document.getElementById("favoritesOnly");
+    if(all&&myTeam)posBar.insertBefore(myTeam,all.nextSibling);
+    if(myTeam&&favourites)posBar.insertBefore(favourites,myTeam.nextSibling);
   }
 
   function hideFooter(){
@@ -188,13 +197,15 @@
   }
 
   function restore(){
-    var s=read();delete s.watchlistOnly;removeWatchlist();hideFooter();
+    var s=read();
+    cleanUi();
     var input=document.getElementById("search");
     if(input&&s.search){input.value=s.search;input.dispatchEvent(new Event("input",{bubbles:true}));}
     if(s.pos){var chip=document.querySelector('.pos-chip[data-pos="'+s.pos+'"]');if(chip&&!chip.classList.contains("active"))chip.click();}
     ["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){if(s[id]===true){var el=document.getElementById(id);if(el&&!el.classList.contains("active"))el.click();}});
     if(s.teamId){var teamInput=document.getElementById("pwTeamId");if(teamInput)teamInput.value=s.teamId;}
     if(s.sortKey){var th=document.querySelector('th[data-key="'+s.sortKey+'"]'),btn=th&&th.querySelector(".sort-btn");if(btn){var dir=firstSortDirection(s.sortKey);if(!(s.sortKey==="priceProgress"&&s.sortDir==="asc")){btn.click();if(s.sortDir!==dir)btn.click();}}}else defaultSort();
+    cleanUi();
   }
 
   function bind(){
@@ -213,7 +224,8 @@
   function start(){
     applyMobileScroll();
     movePriceChangeFirst();
-    var observer=new MutationObserver(function(){applyMobileScroll();movePriceChangeFirst();});
+    cleanUi();
+    var observer=new MutationObserver(function(){applyMobileScroll();movePriceChangeFirst();cleanUi();});
     observer.observe(document.body,{childList:true,subtree:true});
     bind();
     setTimeout(restore,0);
