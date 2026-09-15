@@ -183,7 +183,6 @@ async function handleAsset(request, env) {
 
   let html = await response.text();
   if (!html.includes("/jersey-fix.js")) html = html.replace(/<\/body>/i, '<script src="/jersey-fix.js"></script></body>');
-  if (!html.includes("/scroll-fix.js")) html = html.replace(/<\/body>/i, '<script src="/scroll-fix.js"></script></body>');
   if (!html.includes("/pwa-enhance.js")) html = html.replace(/<\/body>/i, '<script src="/pwa-enhance.js"></script></body>');
   if (!html.includes("/team-menu.js")) html = html.replace(/<\/body>/i, '<script src="/team-menu.js"></script></body>');
 
