@@ -2,7 +2,6 @@
   "use strict";
 
   var UI_KEY="pricewatch:pwa-state";
-  var SORT_KEY="pricewatch:sort-state";
   var saveTimer=0;
   var pageScroll=null;
   var stickyBar=null;
@@ -12,22 +11,6 @@
 
   function read(key){try{return JSON.parse(localStorage.getItem(key)||"{}");}catch(e){return {};}}
   function write(patch){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{var state=read(UI_KEY);delete state.watchlistOnly;localStorage.setItem(UI_KEY,JSON.stringify(Object.assign(state,patch||{})));}catch(e){}},80);}
-
-  function cleanDeprecatedUi(){
-    try{localStorage.removeItem("pricewatch:watchlist");}catch(e){}
-    var watchlist=document.getElementById("watchlistOnly");if(watchlist)watchlist.remove();
-    document.querySelectorAll(".watch-btn").forEach(function(el){el.remove();});
-    document.querySelectorAll(".pw-row-watch").forEach(function(row){row.classList.remove("pw-row-watch");});
-    var posBar=document.getElementById("posBar");if(!posBar)return;
-    var all=posBar.querySelector('.pos-chip[data-pos="ALL"]'),myTeam=document.getElementById("myTeamOnly"),favourites=document.getElementById("favoritesOnly");
-    if(all&&myTeam&&all.nextSibling!==myTeam)posBar.insertBefore(myTeam,all.nextSibling);
-    if(myTeam&&favourites&&myTeam.nextSibling!==favourites)posBar.insertBefore(favourites,myTeam.nextSibling);
-  }
-
-  function observeDeprecatedUi(){
-    var tbody=document.getElementById("tbody");if(!tbody||!window.MutationObserver)return;
-    var observer=new MutationObserver(function(){cleanDeprecatedUi();});observer.observe(tbody,{childList:true});cleanDeprecatedUi();
-  }
 
   function showRefreshLoading(){
     var tbody=document.getElementById("tbody");
@@ -46,22 +29,10 @@
     document.querySelectorAll("#pwDashboard .pw-stat .value").forEach(function(value){value.textContent="—";});
   }
 
-  function observeRefreshCompletion(){
-    var status=document.getElementById("statusText");if(!status||!window.MutationObserver)return;
-    var observer=new MutationObserver(function(){
-      var text=status.textContent||"";
-      if(text!=="Refreshing…"&&text.indexOf("Connecting")!==0&&text.indexOf("Checking")!==0){
-        observer.disconnect();
-      }
-    });
-    observer.observe(status,{childList:true,characterData:true,subtree:true});
-  }
-
   function bindRefreshLoading(){
     document.addEventListener("click",function(event){
       if(!event.target.closest||!event.target.closest("#refreshBtn"))return;
       showRefreshLoading();
-      observeRefreshCompletion();
     },true);
   }
 
@@ -74,7 +45,7 @@
     var sourceCells=thead.querySelectorAll("th");if(!sourceCells.length)return;
     var playerWidth=sourceCells[0].getBoundingClientRect().width;stickyPlayer.style.width=playerWidth+"px";stickyRest.style.left=playerWidth+"px";stickyRest.style.width=Math.max(0,window.innerWidth-playerWidth)+"px";stickyRest.scrollLeft=tableWrap.scrollLeft;
     var restCells=stickyRestTable?stickyRestTable.querySelectorAll("th"):[];
-    for(var i=0;i<sourceCells.length;i++){var width=sourceCells[i].getBoundingClientRect().width,playerCell=i===0?stickyPlayer.querySelector("th"):null,restCell=restCells[i-1];if(playerCell){playerCell.style.width=width+"px";playerCell.style.minWidth=width+"px";}if(restCell){restCell.style.width=width+"px";restCell.style.minWidth=width+"px";}}
+    for(var i=0;i<sourceCells.length;i++){var width=sourceCells[i].getBoundingClientRect().width,clone=i===0?stickyPlayer.querySelector("th"):restCells[i-1];if(clone){clone.innerHTML=sourceCells[i].innerHTML;clone.className=sourceCells[i].className;clone.style.width=width+"px";clone.style.minWidth=width+"px";}}
   }
 
   function createStickyHeader(){
@@ -114,13 +85,12 @@
     if(input&&s.search){input.value=s.search;input.dispatchEvent(new Event("input",{bubbles:true}));}
     if(s.pos){var chip=document.querySelector('.pos-chip[data-pos="'+s.pos+'"]');if(chip&&!chip.classList.contains("active"))chip.click();}
     ["favoritesOnly","risersOnly","risingOnly","fallingOnly","differentialsOnly","myTeamOnly"].forEach(function(id){if(s[id]===true){var el=document.getElementById(id);if(el&&!el.classList.contains("active"))el.click();}});
-    cleanDeprecatedUi();
   }
 
   function restoreScroll(){var s=read(UI_KEY);if(pageScroll)pageScroll.scrollTo(0,Number.isFinite(s.scrollTop)?s.scrollTop:0);syncSticky();}
 
   function start(){
-    applyMobileScroll();observeDeprecatedUi();bindPersistence();bindRefreshLoading();setTimeout(restoreUi,0);setTimeout(restoreScroll,80);
+    applyMobileScroll();bindPersistence();bindRefreshLoading();setTimeout(restoreUi,0);setTimeout(restoreScroll,80);
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
