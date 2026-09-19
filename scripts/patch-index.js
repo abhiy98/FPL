@@ -9,13 +9,6 @@ function mustReplace(label, pattern, replacement) {
   html = html.replace(pattern, replacement);
 }
 
-// Canonical Cloudflare API path.
-mustReplace(
-  "FPL proxy",
-  /\{ build: function\(u\)\{ return "\/\.netlify\/functions\/fpl"; \}, parse: function\(res\)\{ return res\.json\(\); \} \},/,
-  '{ build: function(u){ return "/fpl?path=" + encodeURIComponent(u.replace("https://fantasy.premierleague.com/api/", "")); }, parse: function(res){ return res.json(); } },'
-);
-
 // The dashboard is owned by the app. Keep its markup and ordering canonical here.
 html = html.replace(/\s*<div class="pw-price-timer">[\s\S]*?<\/div>/g, "");
 html = html.replace(/\s*\.pw-price-timer\{[^}]*\}/g, "");
