@@ -4,7 +4,7 @@ var SHELL=["./manifest.json","./icon-192.png","./icon-512.png","./pwa-enhance.js
 self.addEventListener("install",function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(SHELL);}));self.skipWaiting();});
 self.addEventListener("activate",function(e){e.waitUntil((async function(){var keys=await caches.keys();await Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));if("navigationPreload"in self.registration){try{await self.registration.navigationPreload.enable();}catch(e){}}})());self.clients.claim();});
 
-function isExternalData(url){return url.indexOf("fantasy.premierleague.com")!==-1||url.indexOf("corsproxy.io")!==-1||url.indexOf("allorigins.win")!==-1||url.indexOf("codetabs.com")!==-1||url.indexOf("/.netlify/functions/")!==-1||/\/fpl(?:\?|$)/.test(url)||/\/team(?:\?|$)/.test(url)||/\/price-data(?:\?|$)/.test(url)||url.indexOf("livefpl.us/api/")!==-1||url.indexOf("resources.premierleague.com/premierleague/photos/")!==-1||url.indexOf("resources.premierleague.com/premierleague25/photos/")!==-1;}
+function isExternalData(url){return url.indexOf("fantasy.premierleague.com")!==-1||/\/fpl(?:\?|$)/.test(url)||/\/team(?:\?|$)/.test(url)||/\/price-data(?:\?|$)/.test(url)||url.indexOf("livefpl.us/api/")!==-1||url.indexOf("resources.premierleague.com/premierleague/photos/")!==-1||url.indexOf("resources.premierleague.com/premierleague25/photos/")!==-1;}
 function isEnhancementScript(url){return /\/(?:jersey-fix|pwa-enhance|team-menu)\.js(?:\?|$)/.test(url);}
 
 self.addEventListener("fetch",function(e){
