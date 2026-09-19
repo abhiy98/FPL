@@ -24,8 +24,6 @@
     if(!editor)return;
     var input=document.getElementById("pwTeamId"),button=document.getElementById("pwLoadTeam"),clear=document.getElementById("pwClearTeam"),note=document.getElementById("pwTeamNote");
     if(mode==="change"&&hasTeam()&&input&&clear){
-      /* Keep the currently loaded Team ID when changing so the user can replace it deliberately. */
-      var stored=input.value.trim();if(stored)input.value=stored;
     }
     editor.classList.add("open");
     if(note)note.textContent=mode==="change"?"Enter a different FPL Team ID and load it.":"Enter your FPL Team ID to add your team.";
@@ -88,7 +86,7 @@
     document.addEventListener("keydown",function(e){if(e.key==="Escape"){closeMenu();hideEditor();}});
 
     var loadButton=document.getElementById("pwLoadTeam");
-    if(loadButton)loadButton.addEventListener("click",function(){setTimeout(function(){setTimeout(function(){if(hasTeam())hideEditor();updateMenu();},150);},0);});
+    if(loadButton)loadButton.addEventListener("click",function(){setTimeout(function(){if(hasTeam())hideEditor();updateMenu();},150);});
     var clearButton=document.getElementById("pwClearTeam");
     if(clearButton)clearButton.addEventListener("click",function(){setTimeout(updateMenu,0);});
     updateMenu();
