@@ -321,7 +321,7 @@ body{
     <div class="pw-stat"><div class="label">Deadline</div><div class="value" id="pwDeadline">—</div><div class="hint">next gameweek lock</div></div>
   </div>
   <div class="pw-tools"><input class="pw-team-input" id="pwTeamId" inputmode="numeric" placeholder="Your FPL Team ID (optional)" autocomplete="off"><button class="pw-btn primary" id="pwLoadTeam">Load my team</button><button class="pw-btn" id="pwClearTeam" style="display:none">Clear team</button></div>
-  <div class="pw-team-note" id="pwTeamNote">Favourites, watchlist and your Team ID are saved locally on this device. No login is required.</div>
+  <div class="pw-team-note" id="pwTeamNote">Favourites and your Team ID are saved locally on this device. No login is required.</div>
 </section>
 <div class="pw-modal-backdrop" id="pwModalBackdrop"><div class="pw-modal" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle"><div class="pw-modal-head"><div><div class="pw-modal-title" id="pwModalTitle">Player</div><div class="pw-modal-sub" id="pwModalSub"></div></div><button class="pw-close" id="pwModalClose" aria-label="Close player details">×</button></div><div class="pw-modal-body" id="pwModalBody"></div></div></div>
 <div class="table-wrap" id="tableWrap">
@@ -479,7 +479,7 @@ body{
         var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100);
         var isFav = state.favs.has(p.id), isOwned = state.team && state.team.picks.has(p.id);
         var mom = p.netTransfers > 0 ? '<span class="momentum up">▲</span>' : p.netTransfers < 0 ? '<span class="momentum down">▼</span>' : '<span class="momentum neutral">•</span>';
-        return '<tr data-player-id="' + p.id + '" class="' + (isOwned ? 'pw-row-owned ' : '') + (isWatch ? 'pw-row-watch' : '') + '">' +
+        return '<tr data-player-id="' + p.id + '" class="' + (isOwned ? 'pw-row-owned ' : '') + '">' +
           '<td class="col-player"><div class="player-cell"><div class="action-buttons">' +
           '<button class="fav-btn' + (isFav ? ' active' : '') + '" data-fav-id="' + p.id + '" aria-label="Toggle favourite">' + (isFav ? '★' : '☆') + '</button>' +
           '</div>' +
@@ -496,7 +496,7 @@ body{
     var rising=state.players.filter(function(p){return p.total>0}), falling=state.players.filter(function(p){return p.total<0}), biggest=state.players.slice().sort(function(a,b){return Math.abs(b.total)-Math.abs(a.total);})[0];
     var re=document.getElementById('pwRisingCount'), fe=document.getElementById('pwFallingCount'), bm=document.getElementById('pwBiggestMove'), bh=document.getElementById('pwBiggestMoveHint'), dl=document.getElementById('pwDeadline');
     if(re)re.textContent=rising.length; if(fe)fe.textContent=falling.length; if(bm)bm.textContent=biggest?fmtDelta(biggest.total).text:'—'; if(bh)bh.textContent=biggest?biggest.name+' · '+biggest.team:'awaiting data';
-    var ev=currentEvent(state.events); if(dl)dl.textContent=ev?formatCountdown(ev.deadline_time):'—';
+    if(dl)dl.textContent='—';
     var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device. No login is required.';
     var clear=document.getElementById('pwClearTeam'); if(clear)clear.style.display=state.team?'inline-block':'none';
   }
