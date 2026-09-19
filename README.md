@@ -1,26 +1,21 @@
 # Price Watch — FPL price tracker
 
 ## Project structure
-- `index.html` — canonical app UI, state, data loading, dashboard, table rendering and sorting
+- `index.html` — final app UI, state, data loading, dashboard, table rendering, sorting and player details
 - `_worker.js` — Cloudflare Pages Advanced Mode worker for `/fpl`, `/team` and `/price-data`, plus the single HTML enhancement injection point
 - `manifest.json` + `sw.js` — installable PWA and service-worker cache/offline layer
 - `icon-192.png` + `icon-512.png` — PWA icons
 - `jersey-fix.js`, `pwa-enhance.js`, `team-menu.js` — focused presentation enhancements
-- `scripts/patch-index.js` — deterministic Pages build transformation and structural verification
 
 Cloudflare Pages is the only deployment target. Legacy Netlify, standalone Wrangler configuration, and separate CI/build-verification files are no longer part of the repository.
 
 ## Cloudflare Pages deployment
 
-Use the repository's `Reorg` branch in Cloudflare Pages with this build command:
+Use the `Review` branch in Cloudflare Pages with no build command.
 
-```text
-node scripts/patch-index.js
-```
+No source-rewriting build step is required; `index.html` is already the final runtime page. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
 
-The build script transforms `index.html` into the final app and verifies the required table, predictor, snapshot, dashboard, sorting, and PWA structures before completing. The Pages worker serves static assets through `env.ASSETS` and handles the API routes directly.
-
-The Cloudflare worker is the only layer that injects client enhancement scripts. The service worker only caches and serves those already-enhanced responses; it does not rewrite HTML.
+The Cloudflare worker serves the API routes and injects the small enhancement scripts; the service worker only handles caching/offline behavior.
 
 ## FPL data
 
