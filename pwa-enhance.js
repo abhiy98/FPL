@@ -10,7 +10,7 @@
   var stickyRestTable=null;
 
   function read(key){try{return JSON.parse(localStorage.getItem(key)||"{}");}catch(e){return {};}}
-  function write(patch){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{var state=read(UI_KEY);delete state.watchlistOnly;localStorage.setItem(UI_KEY,JSON.stringify(Object.assign(state,patch||{})));}catch(e){}},80);}
+  function write(patch){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{var state=read(UI_KEY);localStorage.setItem(UI_KEY,JSON.stringify(Object.assign(state,patch||{})));}catch(e){}},80);}
 
   function showRefreshLoading(){
     var tbody=document.getElementById("tbody");
