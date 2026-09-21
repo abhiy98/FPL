@@ -1,14 +1,14 @@
-import "./pwa-enhance.js";
-import "./jersey-fix.js";
-import "./team-menu.js";
+import "./pwa-enhance.js?v=20260921";
+import "./jersey-fix.js?v=20260921";
+import "./team-menu.js?v=20260921";
 
-import { fetchBootstrap, fetchPublicApi, fetchPriceData } from "./api.js";
-import { currentEvent, upcomingEvent, formatCountdown, formatDeadline, nextPriceChangeAt } from "./utils.js";
+import { fetchBootstrap, fetchPublicApi, fetchPriceData } from "./api.js?v=20260921";
+import { currentEvent, upcomingEvent, formatCountdown, formatDeadline, nextPriceChangeAt } from "./utils.js?v=20260921";
 import {
   STORE_KEY_FAVS, STORE_KEY_WATCHLIST, STORE_KEY_TEAM,
   loadSet, saveSet, loadValue, saveValue, removeValue,
   saveSnapshot, loadSnapshot
-} from "./storage.js";
+} from "./storage.js?v=20260921";
 
 (function(){
   "use strict";
