@@ -176,32 +176,12 @@ async function handleTeam(url) {
   }
 }
 
-async function handleAsset(request, env) {
-  const response = await env.ASSETS.fetch(request);
-  const contentType = response.headers.get("content-type") || "";
-  if (!response.ok || !contentType.includes("text/html")) return response;
-
-  let html = await response.text();
-  if (!html.includes("/jersey-fix.js")) html = html.replace(/<\/body>/i, '<script src="/jersey-fix.js"></script></body>');
-  if (!html.includes("/pwa-enhance.js")) html = html.replace(/<\/body>/i, '<script src="/pwa-enhance.js"></script></body>');
-  if (!html.includes("/team-menu.js")) html = html.replace(/<\/body>/i, '<script src="/team-menu.js"></script></body>');
-
-  const headers = new Headers(response.headers);
-  headers.delete("content-length");
-  return new Response(html, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/fpl") return handleFpl(url);
     if (url.pathname === "/price-data") return handlePriceData();
     if (url.pathname === "/team") return handleTeam(url);
-    if (url.pathname === "/" || url.pathname === "/index.html") return handleAsset(request, env);
     return env.ASSETS.fetch(request);
   }
 };
