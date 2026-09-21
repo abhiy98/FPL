@@ -128,6 +128,17 @@ import {
   function priceStatusMarkup(p){var s=priceStatus(p);p.priceStatusRank=s.rank;return '<span class="pw-status '+s.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(s.text)+'</span>';}
   function pricePercentMarkup(p,key){var value=priceMetric(p,key);var cls=value==null?"neutral":value>0?"rise":value<0?"drop":"neutral";return '<span class="pw-percent '+cls+'">'+escapeHtml(pricePercent(value))+'</span>';}
 
+  async function loadPricePredictor(){
+    try{
+      var response=await fetchPriceData();
+      var data=response&&response.players?response.players:{};
+      if(Object.keys(data).length){
+        predictorData=data;
+        render();
+      }
+    }catch(e){}
+  }
+
   function applyFilters(list){
     var q = state.search.trim().toLowerCase();
     return list.filter(function(p){
@@ -237,30 +248,23 @@ import {
   async function refresh(isManual){
     if (state.polling) return;
     state.polling = true;
-    refreshBtn.querySelector ? null : null;
     refreshBtn.innerHTML = '<span class="spin"><svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4L3 10"></path><path d="M3 4v6h6"></path><path d="M4 13a8 8 0 0 0 14.9 4L21 14"></path><path d="M21 20v-6h-6"></path></svg></span>';
     setStatus("", isManual ? "Refreshing…" : "Checking for updates…");
     try{
       var data = await fetchBootstrap(function(attempt, total){
         if (total > 1) setStatus("", "Connecting (source " + attempt + "/" + total + ")…");
       });
-      var priceData = {};
-      try {
-        var predictorResponse = await fetchPriceData();
-        priceData = predictorResponse && predictorResponse.players ? predictorResponse.players : {};
-      predictorData = priceData;
-      } catch (predictorError) {}
       state.events = data.events || [];
       state.currentGameweek = currentEvent(state.events);
-      var mapped = mapPlayers(data, priceData);
+      var mapped = mapPlayers(data);
       var changed = detectChanges(state.players, mapped);
       state.players = mapped;
       state.lastUpdated = new Date();
       state.loadErrorMsg = null;
-      try{ localStorage.__pw_test = 1; }catch(e){}
       saveSnapshot(mapped, state.lastUpdated);
       setStatus("live", "Live");
       render();
+      loadPricePredictor();
       if (isManual) showToast("Prices refreshed");
       if (changed.length){
         showToast(changed.length + " price" + (changed.length > 1 ? "s" : "") + " just changed");
@@ -401,7 +405,9 @@ import {
   }
 
   refresh(false);
+  loadPricePredictor();
   setInterval(function(){ refresh(false); }, POLL_MS);
+  setInterval(function(){ loadPricePredictor(); }, 15 * 60 * 1000);
   setInterval(function(){ renderDashboard(); }, 1000);
   restoreTeam();
 
