@@ -48,8 +48,9 @@
     refreshButton.className="pw-menu-refresh";
     refreshButton.setAttribute("type","button");
     refreshButton.setAttribute("data-team-action","refresh");
-    refreshButton.textContent="Refresh";
-    refreshButton.removeAttribute("aria-label");
+    refreshButton.innerHTML='<svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4L3 10"></path><path d="M3 4v6h6"></path><path d="M4 13a8 8 0 0 0 14.9 4L21 14"></path><path d="M21 20v-6h-6"></path></svg><span class="sr-only">Refresh</span>';
+    refreshButton.setAttribute("aria-label","Refresh now");
+    refreshButton.setAttribute("title","Refresh now");
     refreshButton.removeAttribute("style");
     menu.insertBefore(refreshButton,menu.firstElementChild);
   }
@@ -66,7 +67,7 @@
       #pwTeamMenuButton{width:34px;height:34px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text-dim);border-radius:9px;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-family:inherit}
       #pwTeamMenuButton:active{background:var(--panel-2);color:var(--text)}
       .pw-team-menu-wrap{position:relative;flex:none}.pw-team-menu{position:absolute;top:40px;right:0;width:185px;padding:6px;border:1px solid var(--line-strong);border-radius:10px;background:var(--panel-2);box-shadow:0 12px 28px rgba(0,0,0,.45);display:none;z-index:50}.pw-team-menu.open{display:flex;flex-direction:column;gap:2px}
-      .pw-team-menu button{display:flex;align-items:center;width:100%;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:7px;font-size:13px;text-align:left;cursor:pointer;font-family:inherit}.pw-team-menu button:hover,.pw-team-menu button:active{background:rgba(255,255,255,.06)}.pw-team-menu button.danger{color:var(--fall)}.pw-team-menu .pw-menu-refresh{order:-1;color:var(--accent)}
+      .pw-team-menu button{display:flex;align-items:center;width:100%;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:7px;font-size:13px;text-align:left;cursor:pointer;font-family:inherit}.pw-team-menu button:hover,.pw-team-menu button:active{background:rgba(255,255,255,.06)}.pw-team-menu button.danger{color:var(--fall)}.pw-menu-refresh{justify-content:center!important}.pw-menu-refresh .refresh-icon{width:17px;height:17px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.pw-menu-refresh .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.pw-team-menu .pw-menu-refresh{order:-1;color:var(--accent)}
       .pw-team-editor{position:absolute;top:48px;right:12px;z-index:49;width:min(330px,calc(100vw - 24px));padding:12px;border:1px solid var(--line-strong);border-radius:11px;background:var(--panel-2);box-shadow:0 14px 32px rgba(0,0,0,.5);display:none}.pw-team-editor.open{display:block}.pw-team-editor .pw-tools{display:flex!important;margin-top:0!important;flex-wrap:nowrap}.pw-team-editor .pw-team-note{display:block!important;margin-top:6px}.pw-team-editor .pw-team-input{min-width:0}.pw-team-editor .pw-btn{white-space:nowrap}
     `;document.head.appendChild(style);
 
