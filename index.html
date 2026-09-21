@@ -25,7 +25,7 @@
     <div class="status-pill" id="statusPill">
       <span class="status-dot" id="statusDot"></span>
       <span id="statusText">Connecting…</span>
-      <button id="refreshBtn" aria-label="Refresh now">⟳</button>
+      <button id="refreshBtn" aria-label="Refresh now" title="Refresh now"><svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4L3 10"></path><path d="M3 4v6h6"></path><path d="M4 13a8 8 0 0 0 14.9 4L21 14"></path><path d="M21 20v-6h-6"></path></svg></button>
     </div>
   </div>
 
@@ -56,10 +56,10 @@
 
 <section class="pw-dashboard" id="pwDashboard">
   <div class="pw-dashboard-top">
-    <div class="pw-stat"><div class="label">Rising</div><div class="value" id="pwRisingCount">—</div><div class="hint">players moving up</div></div>
-    <div class="pw-stat"><div class="label">Falling</div><div class="value" id="pwFallingCount">—</div><div class="hint">players moving down</div></div>
-    <div class="pw-stat"><div class="label">Biggest move</div><div class="value" id="pwBiggestMove">—</div><div class="hint" id="pwBiggestMoveHint">awaiting data</div></div>
-    <div class="pw-stat"><div class="label">Deadline</div><div class="value" id="pwDeadline">—</div><div class="hint">next gameweek lock</div></div>
+    <div class="pw-stat"><div class="label">Price change timer</div><div class="value" id="pwPriceChangeTimer">—</div><div class="hint">next update · 00:00 UK</div></div>
+    <div class="pw-stat"><div class="label">Available budget</div><div class="value" id="pwAvailableBudget">—</div><div class="hint">current bank</div></div>
+    <div class="pw-stat"><div class="label">Total team value</div><div class="value" id="pwTeamValue">—</div><div class="hint">current player prices</div></div>
+    <div class="pw-stat"><div class="label">GW deadline</div><div class="value" id="pwDeadline">—</div><div class="hint" id="pwDeadlineHint">upcoming gameweek</div></div>
   </div>
   <div class="pw-tools"><input class="pw-team-input" id="pwTeamId" inputmode="numeric" placeholder="Your FPL Team ID (optional)" autocomplete="off"><button class="pw-btn primary" id="pwLoadTeam">Load my team</button><button class="pw-btn" id="pwClearTeam" style="display:none">Clear team</button></div>
   <div class="pw-team-note" id="pwTeamNote">Favourites, watchlist and your Team ID are saved locally on this device. No login is required.</div>
@@ -79,14 +79,14 @@
         <th data-key="now" class="num"><button class="sort-btn">Current<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
         <th data-key="total" class="num"><button class="sort-btn">Total Δ<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
         <th data-key="event" class="num"><button class="sort-btn">This GW<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
-        <th data-key="event" class="num"><button class="sort-btn">Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
+        <th data-key="points" class="num"><button class="sort-btn">Points<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
         <th data-key="own" class="num"><button class="sort-btn">Owned<span class="sort-arrows"><svg viewBox="0 0 8 8"><polygon points="4,0 8,6 0,6"/></svg><svg viewBox="0 0 8 8"><polygon points="4,8 8,2 0,2"/></svg></span></button></th>
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:110px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
-      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:90px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
-      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:130px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
+      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:110px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
+      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:90px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
+      <tr class="skeleton-row"><td class="col-player"><div class="skeleton" style="width:130px"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td><td><div class="skeleton" style="width:36px;margin-left:auto"></div></td></tr>
     </tbody>
   </table>
   <div class="empty-state" id="emptyState" style="display:none">
