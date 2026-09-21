@@ -2,7 +2,7 @@ import "./pwa-enhance.js";
 import "./jersey-fix.js";
 import "./team-menu.js";
 
-import { fetchBootstrap, fetchPublicApi } from "./api.js";
+import { fetchBootstrap, fetchPublicApi, fetchPriceData } from "./api.js";
 import { currentEvent, upcomingEvent, formatCountdown, formatDeadline, nextPriceChangeAt } from "./utils.js";
 import {
   STORE_KEY_FAVS, STORE_KEY_WATCHLIST, STORE_KEY_TEAM,
@@ -77,20 +77,40 @@ import {
 
   
 
-  function mapPlayers(data){
+  function mapPlayers(data, priceData){
     var teams = {};
     (data.teams || []).forEach(function(t){ teams[t.id] = { name: t.name || "", shortName: t.short_name || "" }; });
+    var predictors = priceData || {};
     var posMap = { 1: "GKP", 2: "DEF", 3: "MID", 4: "FWD" };
+
+    function normaliseProgress(value){
+      var n = Number(value);
+      if (!Number.isFinite(n)) return null;
+      return Math.abs(n) > 5 ? n / 100 : n;
+    }
+    function probabilityPercent(value){
+      var n = Number(value);
+      if (!Number.isFinite(n)) return null;
+      if (Math.abs(n) <= 1) n *= 100;
+      return Math.max(0, Math.min(100, n));
+    }
+
     return (data.elements || []).map(function(el){
-      var now = el.now_cost;
-      var startChange = el.cost_change_start || 0;
+      var now = el.now_cost, startChange = el.cost_change_start || 0;
       var team = teams[el.team] || { name: "", shortName: "" };
       var netTransfers = (el.transfers_in_event || 0) - (el.transfers_out_event || 0);
+      var predictor = predictors[String(el.id)] || {};
+      var projection = Array.isArray(el.price_change_projections) && el.price_change_projections.length ? el.price_change_projections[0] : null;
+      var progressValue = predictor.progress != null ? predictor.progress : normaliseProgress(el.price_change_percent);
+      var predictionValue = predictor.likelihood != null ? probabilityPercent(predictor.likelihood) :
+        (predictor.predictedProgress != null ? probabilityPercent(predictor.predictedProgress) :
+        (projection ? probabilityPercent(projection.projected_percent) : null));
       return {
         id: el.id, name: el.web_name, team: team.shortName, teamName: team.name,
         pos: posMap[el.element_type] || "", gw1: now - startChange, now: now,
         total: startChange, event: el.cost_change_event || 0,
-        own: parseFloat(el.selected_by_percent) || 0, status: el.status,
+        own: parseFloat(el.selected_by_percent) || 0, status: el.status || "",
+        progress: progressValue, prediction: predictionValue,
         transfersIn: el.transfers_in_event || 0, transfersOut: el.transfers_out_event || 0,
         netTransfers: netTransfers, points: el.total_points || 0,
         form: parseFloat(el.form) || 0, epNext: parseFloat(el.ep_next) || 0,
@@ -98,6 +118,18 @@ import {
         valueScore: now ? ((el.total_points || 0) / (now / 10)) : 0
       };
     });
+  }
+
+
+  function formatPlayerStatus(status){
+    var labels = { a: "Available", d: "Doubtful", i: "Injured", s: "Suspended", u: "Unavailable" };
+    return labels[String(status || "").toLowerCase()] || (status ? String(status).toUpperCase() : "—");
+  }
+  function formatProgress(value){
+    return Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value) * 100)).toFixed(0) + "%" : "—";
+  }
+  function formatPrediction(value){
+    return Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value))).toFixed(0) + "%" : "—";
   }
 
   function applyFilters(list){
@@ -162,6 +194,9 @@ import {
           '<td class="num"><span class="delta ' + total.cls + '"><span class="arrow">' + total.arrow + '</span>' + total.text + '</span></td>' +
           '<td class="num"><span class="delta ' + event.cls + '"><span class="arrow">' + event.arrow + '</span>' + event.text + '</span></td>' +
           '<td class="num points">' + p.points + '</td>' +
+          '<td class="num"><span class="pw-status pw-status-' + String(p.status || 'u').toLowerCase() + '">' + escapeHtml(formatPlayerStatus(p.status)) + '</span></td>' +
+          '<td class="num percent-cell"><span class="progress-value">' + formatProgress(p.progress) + '</span><span class="progress-bar"><i style="width:' + (Number.isFinite(Number(p.progress)) ? Math.max(0, Math.min(100, Number(p.progress) * 100)) : 0) + '%"></i></span></td>' +
+          '<td class="num prediction">' + formatPrediction(p.prediction) + '</td>' +
           '<td class="num"><div class="own-bar-wrap">' + p.own.toFixed(1) + '%<span class="own-bar"><i style="width:' + ownPct + '%"></i></span></div></td></tr>';
       }).join('');
     }
@@ -212,9 +247,14 @@ import {
       var data = await fetchBootstrap(function(attempt, total){
         if (total > 1) setStatus("", "Connecting (source " + attempt + "/" + total + ")…");
       });
+      var priceData = {};
+      try {
+        var predictorResponse = await fetchPriceData();
+        priceData = predictorResponse && predictorResponse.players ? predictorResponse.players : {};
+      } catch (predictorError) {}
       state.events = data.events || [];
       state.currentGameweek = currentEvent(state.events);
-      var mapped = mapPlayers(data);
+      var mapped = mapPlayers(data, priceData);
       var changed = detectChanges(state.players, mapped);
       state.players = mapped;
       state.lastUpdated = new Date();
