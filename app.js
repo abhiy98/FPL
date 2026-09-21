@@ -41,6 +41,7 @@ import {
   var toastEl = document.getElementById("toast");
   var posBar = document.getElementById("posBar");
   var risersOnly = document.getElementById("risersOnly");
+  var predictorData = {};
 
   function showToast(msg){
     toastEl.textContent = msg;
@@ -102,9 +103,7 @@ import {
       var predictor = predictors[String(el.id)] || {};
       var projection = Array.isArray(el.price_change_projections) && el.price_change_projections.length ? el.price_change_projections[0] : null;
       var progressValue = predictor.progress != null ? predictor.progress : normaliseProgress(el.price_change_percent);
-      var predictionValue = predictor.likelihood != null ? probabilityPercent(predictor.likelihood) :
-        (predictor.predictedProgress != null ? probabilityPercent(predictor.predictedProgress) :
-        (projection ? probabilityPercent(projection.projected_percent) : null));
+      var predictionValue = predictor.predictedProgress != null ? predictor.predictedProgress : (projection ? normaliseProgress(projection.projected_percent) : null);
       return {
         id: el.id, name: el.web_name, team: team.shortName, teamName: team.name,
         pos: posMap[el.element_type] || "", gw1: now - startChange, now: now,
@@ -121,16 +120,13 @@ import {
   }
 
 
-  function formatPlayerStatus(status){
-    var labels = { a: "Available", d: "Doubtful", i: "Injured", s: "Suspended", u: "Unavailable" };
-    return labels[String(status || "").toLowerCase()] || (status ? String(status).toUpperCase() : "—");
-  }
-  function formatProgress(value){
-    return Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value) * 100)).toFixed(0) + "%" : "—";
-  }
-  function formatPrediction(value){
-    return Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value))).toFixed(0) + "%" : "—";
-  }
+  function predictorNumber(value){var n=Number(value);return Number.isFinite(n)?n:null;}
+  function predictorNormalise(value){var n=predictorNumber(value);if(n===null)return null;return Math.abs(n)>5?n/100:n;}
+  function pricePercent(value){var n=predictorNormalise(value);if(n===null)return "—";var pct=n*100;var rounded=Math.round(pct*10)/10;return (rounded>0?"+":"")+rounded.toFixed(1)+"%";}
+  function priceMetric(p,key){var x=predictorData[String(p.id)];if(x&&x[key]!=null)return predictorNormalise(x[key]);return predictorNormalise(p[key]);}
+  function priceStatus(p){var v=priceMetric(p,"predictedProgress");if(v==null)return{text:"—",cls:"neutral",rank:0};v*=100;if(v>=100)return{text:"Very Likely to Rise",cls:"rise",rank:5};if(v>=80)return{text:"Likely to Rise",cls:"rise",rank:4};if(v<=-100)return{text:"Very Likely to Drop",cls:"drop",rank:5};if(v<=-80)return{text:"Likely to Drop",cls:"drop",rank:4};return{text:"Unlikely to Change",cls:"neutral",rank:1};}
+  function priceStatusMarkup(p){var s=priceStatus(p);p.priceStatusRank=s.rank;return '<span class="pw-status '+s.cls+'"><span class="pw-status-dot"></span>'+escapeHtml(s.text)+'</span>';}
+  function pricePercentMarkup(p,key){var value=priceMetric(p,key);var cls=value==null?"neutral":value>0?"rise":value<0?"drop":"neutral";return '<span class="pw-percent '+cls+'">'+escapeHtml(pricePercent(value))+'</span>';}
 
   function applyFilters(list){
     var q = state.search.trim().toLowerCase();
@@ -153,7 +149,7 @@ import {
     return list.slice().sort(function(a, b){
       var av, bv;
       if (key === "name"){ av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
-      else { av = a[key]; bv = b[key]; }
+      else if(key==="priceStatusRank"){av=priceStatus(a).rank;bv=priceStatus(b).rank;} else if(key==="priceProgress"){av=priceMetric(a,"progress");bv=priceMetric(b,"progress");} else if(key==="pricePrediction"){av=priceMetric(a,"predictedProgress");bv=priceMetric(b,"predictedProgress");} else {av=a[key]==null?0:a[key];bv=b[key]==null?0:b[key];}
       if (av < bv) return -1 * dir;
       if (av > bv) return 1 * dir;
       return a.name.localeCompare(b.name);
@@ -184,21 +180,22 @@ import {
       tbody.innerHTML = sorted.map(function(p){
         var total = fmtDelta(p.total), event = fmtDelta(p.event), ownPct = Math.min(100, (p.own / maxOwn) * 100);
         var isFav = state.favs.has(p.id), isWatch = state.watchlist.has(p.id), isOwned = state.team && state.team.picks.has(p.id);
+        var statusHtml=priceStatusMarkup(p), progressHtml=pricePercentMarkup(p,"progress"), predictionHtml=pricePercentMarkup(p,"predictedProgress");
         var mom = p.netTransfers > 0 ? '<span class="momentum up">▲</span>' : p.netTransfers < 0 ? '<span class="momentum down">▼</span>' : '<span class="momentum neutral">•</span>';
         return '<tr data-player-id="' + p.id + '" class="' + (isOwned ? 'pw-row-owned ' : '') + (isWatch ? 'pw-row-watch' : '') + '">' +
           '<td class="col-player"><div class="player-cell"><div class="action-buttons">' +
           '<button class="fav-btn' + (isFav ? ' active' : '') + '" data-fav-id="' + p.id + '" aria-label="Toggle favourite">' + (isFav ? '★' : '☆') + '</button>' +
           '<button class="watch-btn' + (isWatch ? ' active' : '') + '" data-watch-id="' + p.id + '" aria-label="Toggle watchlist">' + (isWatch ? '◉' : '○') + '</button></div>' +
           '<div class="player-text"><span class="player-name">' + escapeHtml(p.name) + '</span><span class="player-meta"><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span>' + escapeHtml(p.team) + ' · ' + mom + '</span></div></div></td>' +
+          '<td class="num">' + statusHtml + '</td>' +
+          '<td class="num">' + progressHtml + '</td>' +
+          '<td class="num">' + predictionHtml + '</td>' +
           '<td class="num price">' + fmtPrice(p.gw1) + '</td><td class="num price">' + fmtPrice(p.now) + '</td>' +
           '<td class="num"><span class="delta ' + total.cls + '"><span class="arrow">' + total.arrow + '</span>' + total.text + '</span></td>' +
           '<td class="num"><span class="delta ' + event.cls + '"><span class="arrow">' + event.arrow + '</span>' + event.text + '</span></td>' +
-          '<td class="num points">' + p.points + '</td>' +
-          '<td class="num"><span class="pw-status pw-status-' + String(p.status || 'u').toLowerCase() + '">' + escapeHtml(formatPlayerStatus(p.status)) + '</span></td>' +
-          '<td class="num percent-cell"><span class="progress-value">' + formatProgress(p.progress) + '</span><span class="progress-bar"><i style="width:' + (Number.isFinite(Number(p.progress)) ? Math.max(0, Math.min(100, Number(p.progress) * 100)) : 0) + '%"></i></span></td>' +
-          '<td class="num prediction">' + formatPrediction(p.prediction) + '</td>' +
+          '<td class="num">' + p.points + '</td>' +
           '<td class="num"><div class="own-bar-wrap">' + p.own.toFixed(1) + '%<span class="own-bar"><i style="width:' + ownPct + '%"></i></span></div></td></tr>';
-      }).join('');
+
     }
     countLabel.textContent = sorted.length + (sorted.length === 1 ? ' player' : ' players') + (state.players.length ? ' · updated ' + timeAgo(state.lastUpdated) : '');
   }
@@ -251,6 +248,7 @@ import {
       try {
         var predictorResponse = await fetchPriceData();
         priceData = predictorResponse && predictorResponse.players ? predictorResponse.players : {};
+      predictorData = priceData;
       } catch (predictorError) {}
       state.events = data.events || [];
       state.currentGameweek = currentEvent(state.events);
