@@ -22,25 +22,71 @@ function json(body, status = 200, extra = {}) {
   });
 }
 
-async function fplJson(path) {
+const FPL_PROXY_SOURCES = [
+  (target) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(target),
+  (target) => "https://api.allorigins.win/get?url=" + encodeURIComponent(target)
+];
+
+async function fetchText(url, headers = FETCH_HEADERS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 7000);
+  try {
+    const response = await fetch(url, {
+      headers,
+      cf: { cacheTtl: 0, cacheEverything: false }
+    });
+    return { response, text: await response.text() };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchFplText(path) {
+  const target = FPL_API + path;
   let lastError = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+
+  try {
+    const result = await fetchText(target);
+    if (result.response.ok) return { text: result.text, source: "fpl" };
+    lastError = new Error("FPL returned HTTP " + result.response.status);
+  } catch (error) {
+    lastError = error;
+  }
+
+  for (const buildProxyUrl of FPL_PROXY_SOURCES) {
+    const proxyUrl = buildProxyUrl(target);
     try {
-      const response = await fetch(FPL_API + path, {
-        headers: FETCH_HEADERS,
-        cf: { cacheTtl: 0, cacheEverything: false }
-      });
-      if (!response.ok) {
-        lastError = new Error("FPL returned HTTP " + response.status);
-        if (![403, 429, 500, 502, 503, 504].includes(response.status)) break;
+      const result = await fetchText(proxyUrl);
+      if (!result.response.ok) {
+        lastError = new Error("FPL proxy returned HTTP " + result.response.status);
         continue;
       }
-      return response.json();
+
+      if (proxyUrl.includes("/get?")) {
+        const wrapped = JSON.parse(result.text);
+        if (wrapped && typeof wrapped.contents === "string") {
+          return { text: wrapped.contents, source: "allorigins-get" };
+        }
+        lastError = new Error("FPL proxy response did not contain contents");
+        continue;
+      }
+
+      return { text: result.text, source: "allorigins-raw" };
     } catch (error) {
       lastError = error;
     }
   }
-  throw lastError || new Error("FPL request failed");
+
+  throw lastError || new Error("All FPL data sources failed");
+}
+
+async function fplJson(path) {
+  const result = await fetchFplText(path);
+  try {
+    return JSON.parse(result.text);
+  } catch {
+    throw new Error("FPL returned invalid JSON via " + result.source);
+  }
 }
 
 async function handleFpl(url) {
@@ -51,36 +97,17 @@ async function handleFpl(url) {
   if (!allowed.test(requestedPath)) return json({ error: "Unsupported FPL API path" }, 400);
 
   try {
-    let lastResponse = null;
-    let lastError = null;
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const response = await fetch(FPL_API + requestedPath, {
-          headers: FETCH_HEADERS,
-          cf: { cacheTtl: 0, cacheEverything: false }
-        });
-        lastResponse = response;
-        if (response.ok || ![403, 429, 500, 502, 503, 504].includes(response.status)) break;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    if (!lastResponse) {
-      throw lastError || new Error("FPL request failed");
-    }
-
-    const body = await lastResponse.text();
-    return new Response(body, {
-      status: lastResponse.status,
+    const result = await fetchFplText(requestedPath);
+    return new Response(result.text, {
+      status: 200,
       headers: {
         ...JSON_HEADERS,
-        "Cache-Control": "no-store"
+        "Cache-Control": "no-store",
+        "X-FPL-Source": result.source
       }
     });
   } catch (error) {
-    return json({ error: String(error) }, 502);
+    return json({ error: String(error) }, 502, { "Cache-Control": "no-store" });
   }
 }
 
