@@ -48,6 +48,7 @@ export async function fetchPublicApi(path) {
   const cleanPath = path.replace(/^\/+/, "");
   const sources = [
     { url: buildApiUrl(cleanPath), name: "Cloudflare FPL route" },
+    { url: FPL_ORIGIN + cleanPath, name: "FPL direct" },
     { url: buildProxyUrls(cleanPath)[0], name: "allorigins-raw" },
     { url: buildProxyUrls(cleanPath)[1], name: "allorigins-get" },
     { url: buildProxyUrls(cleanPath)[2], name: "cors-io" }
