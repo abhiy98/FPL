@@ -1,4 +1,4 @@
-const CACHE = "fpl-ay-v1";
+const CACHE = "fpl-ay-v2";
 const SHELL = ["./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install",(event)=>{
@@ -21,6 +21,11 @@ self.addEventListener("fetch",(event)=>{
   const request=event.request;
   const url=new URL(request.url);
   if(request.method!=="GET"||isApiRequest(url))return;
+
+  if(/\.(?:js|css)(?:\?.*)?$/.test(url.pathname)){
+    event.respondWith(fetch(request,{cache:"no-store"}));
+    return;
+  }
 
   if(request.mode==="navigate"){
     event.respondWith(
