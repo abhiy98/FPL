@@ -9,9 +9,10 @@ const JSON_HEADERS = {
   "Content-Type": "application/json"
 };
 const FETCH_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (compatible; PriceWatch/1.0)",
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
   "Accept": "application/json, text/plain, */*",
-  "Referer": "https://www.livefpl.net/prices"
+  "Accept-Language": "en-CA,en;q=0.9,en-US;q=0.8",
+  "Referer": "https://fantasy.premierleague.com/"
 };
 
 function json(body, status = 200, extra = {}) {
@@ -22,9 +23,24 @@ function json(body, status = 200, extra = {}) {
 }
 
 async function fplJson(path) {
-  const response = await fetch(FPL_API + path, { headers: FETCH_HEADERS });
-  if (!response.ok) throw new Error("FPL returned HTTP " + response.status);
-  return response.json();
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(FPL_API + path, {
+        headers: FETCH_HEADERS,
+        cf: { cacheTtl: 0, cacheEverything: false }
+      });
+      if (!response.ok) {
+        lastError = new Error("FPL returned HTTP " + response.status);
+        if (![403, 429, 500, 502, 503, 504].includes(response.status)) break;
+        continue;
+      }
+      return response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("FPL request failed");
 }
 
 async function handleFpl(url) {
@@ -35,13 +51,32 @@ async function handleFpl(url) {
   if (!allowed.test(requestedPath)) return json({ error: "Unsupported FPL API path" }, 400);
 
   try {
-    const response = await fetch(FPL_API + requestedPath, { headers: FETCH_HEADERS });
-    const body = await response.text();
+    let lastResponse = null;
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const response = await fetch(FPL_API + requestedPath, {
+          headers: FETCH_HEADERS,
+          cf: { cacheTtl: 0, cacheEverything: false }
+        });
+        lastResponse = response;
+        if (response.ok || ![403, 429, 500, 502, 503, 504].includes(response.status)) break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (!lastResponse) {
+      throw lastError || new Error("FPL request failed");
+    }
+
+    const body = await lastResponse.text();
     return new Response(body, {
-      status: response.status,
+      status: lastResponse.status,
       headers: {
         ...JSON_HEADERS,
-        "Cache-Control": requestedPath === "bootstrap-static/" ? "public, max-age=60" : "public, max-age=30"
+        "Cache-Control": "no-store"
       }
     });
   } catch (error) {
