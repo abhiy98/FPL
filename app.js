@@ -13,6 +13,8 @@ import {
 (function(){
   "use strict";
 
+  var POLL_MS = 3 * 60 * 1000;
+
   var state = {
     players: [],
     sortKey: "total",
@@ -73,24 +75,7 @@ import {
     return h + "h ago";
   }
 
-  async function fetchBootstrap(onAttempt){
-    var lastErr = null;
-    for (var i = 0; i < PROXIES.length; i++){
-      var proxy = PROXIES[i];
-      try{
-        if (onAttempt) onAttempt(i + 1, PROXIES.length);
-        var url = proxy.build(BOOTSTRAP_URL);
-        var res = await fetchWithTimeout(url, 8000);
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        var data = await proxy.parse(res);
-        if (!data || !data.elements || !data.elements.length) throw new Error("Unexpected payload");
-        return data;
-      }catch(e){
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error("All sources failed");
-  }
+  
 
   function mapPlayers(data){
     var teams = {};
