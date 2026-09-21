@@ -20,7 +20,11 @@ export async function fetchPublicApi(path) {
 
 export async function fetchBootstrap(onAttempt) {
   if (onAttempt) onAttempt(1, 1);
-  return fetchPublicApi("bootstrap-static/");
+  const data = await fetchPublicApi("bootstrap-static/");
+  if (!data || !Array.isArray(data.elements)) {
+    throw new Error("FPL returned an invalid bootstrap response");
+  }
+  return data;
 }
 
 export async function fetchPriceData() {
