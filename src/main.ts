@@ -1,6 +1,6 @@
-import "../pwa-enhance.js";
-import "../jersey-fix.js";
-import "../team-menu.js";
+import "./pwa-enhance";
+import "./jersey-fix";
+import "./team-menu";
 import "./styles.css";
 import { fetchBootstrap, fetchPublicApi } from "./api/fpl";
 import { currentEvent, formatCountdown } from "./utils";
