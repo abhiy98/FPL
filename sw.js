@@ -27,6 +27,11 @@ self.addEventListener("fetch",(event)=>{
     return;
   }
 
+  if(/\.(?:js|css)(?:\?.*)?$/.test(url.pathname)){
+    event.respondWith(fetch(request,{cache:"no-store"}));
+    return;
+  }
+
   if(request.mode==="navigate"){
     event.respondWith(
       fetch(request,{cache:"no-store"}).then((response)=>{
