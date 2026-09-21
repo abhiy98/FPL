@@ -261,3 +261,5 @@ footer{
 @media(max-width:600px){.pw-dashboard{padding-left:12px;padding-right:12px}.pw-stat{min-width:118px}.pw-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pw-modal-backdrop{padding:0}.pw-modal{max-height:88vh;border-radius:16px 16px 0 0}}
 
 .refresh-icon{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.status-pill .refresh-icon{flex:none}.points{font-weight:600;font-variant-numeric:tabular-nums}
+
+.pw-status{display:inline-flex;align-items:center;justify-content:flex-end;min-width:72px;font-size:11px;font-weight:600}.pw-status-a{color:var(--rise)}.pw-status-d{color:var(--gold)}.pw-status-i,.pw-status-s,.pw-status-u{color:var(--fall)}.percent-cell{min-width:82px;display:flex;align-items:center;justify-content:flex-end;gap:6px}.progress-value{min-width:30px}.progress-bar{width:38px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;flex:none}.progress-bar i{display:block;height:100%;background:var(--accent);border-radius:2px}.prediction{font-weight:600}
