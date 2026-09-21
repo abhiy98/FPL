@@ -1,31 +1,45 @@
 # FPL AY — FPL price tracker
 
-A lightweight, installable FPL price tracker using TypeScript, Vite and Cloudflare Pages.
+A lightweight, installable FPL price tracker using plain HTML, CSS and browser-native JavaScript modules.
 
 ## Structure
 
-- `index.html` — semantic HTML shell and app markup; no inline CSS or application JavaScript
-- `src/main.ts` — application state, filtering, sorting and rendering
-- `src/api/fpl.ts` — canonical FPL API client
-- `src/storage.ts` — local persistence and snapshots
-- `src/utils.ts` — shared event/countdown helpers
-- `src/styles.css` — application styling
-- `src/pwa-enhance.ts`, `src/jersey-fix.ts`, `src/team-menu.ts` — focused UI modules
-- `_worker.js` — Cloudflare Pages Advanced Mode API worker
-- `manifest.json`, `sw.js`, `icon-*.png` — PWA assets
-- `scripts/postbuild.mjs` — copies Cloudflare/PWA runtime files into Vite output
+- `index.html` — page structure and app markup
+- `styles.css` — application styling
+- `app.js` — application state, filtering, sorting, rendering and interactions
+- `api.js` — FPL API client
+- `storage.js` — local persistence and snapshots
+- `utils.js` — shared helpers
+- `pwa-enhance.js`, `jersey-fix.js`, `team-menu.js` — focused UI modules
+- `_worker.js` — Cloudflare Pages worker for `/fpl`, `/team` and `/price-data`
+- `manifest.json`, `sw.js`, `icon-*.png` — PWA files
 
-## Development
+## Testing locally
+
+There is no build step.
+
+From the repository root, run any simple static web server, for example:
 
 ```bash
-npm install
-npm run dev
-npm run typecheck
-npm run build
+python3 -m http.server 8080
 ```
 
-Cloudflare Pages:
-- Build command: `npm run build`
-- Output directory: `dist`
+Then open:
 
-The browser uses the Cloudflare worker's `/fpl`, `/team` and `/price-data` routes instead of the old public CORS-proxy chain. The worker no longer rewrites HTML or injects client scripts.
+`http://localhost:8080`
+
+The app expects the Cloudflare worker routes for live API access. For the deployed Cloudflare Pages site, the worker supplies those routes automatically.
+
+## Cloudflare Pages
+
+This branch is intentionally build-free so the source `index.html` can be served directly by Cloudflare Pages.
+
+- Build command: leave blank
+- Build output directory: `/` (project root)
+
+The Pages worker handles:
+- `/fpl`
+- `/team`
+- `/price-data`
+
+No Vite, TypeScript compiler or HTML post-processing is required.
