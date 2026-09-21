@@ -17,12 +17,14 @@ function buildProxyUrls(path) {
   const target = FPL_ORIGIN + path.replace(/^\/+/, "");
   return [
     "https://api.allorigins.win/raw?url=" + encodeURIComponent(target),
-    "https://api.allorigins.win/get?url=" + encodeURIComponent(target)
+    "https://api.allorigins.win/get?url=" + encodeURIComponent(target),
+    "https://cors.io/?url=" + encodeURIComponent(target)
   ];
 }
 
 async function readJsonResponse(response, source) {
   if (!response.ok) throw new Error(source + " returned HTTP " + response.status);
+
   if (source === "allorigins-get") {
     const wrapped = await response.json();
     if (!wrapped || typeof wrapped.contents !== "string") {
@@ -30,6 +32,15 @@ async function readJsonResponse(response, source) {
     }
     return JSON.parse(wrapped.contents);
   }
+
+  if (source === "cors-io") {
+    const wrapped = await response.json();
+    if (!wrapped || typeof wrapped.body !== "string") {
+      throw new Error("cors.io did not return FPL contents");
+    }
+    return JSON.parse(wrapped.body);
+  }
+
   return response.json();
 }
 
@@ -38,7 +49,8 @@ export async function fetchPublicApi(path) {
   const sources = [
     { url: buildApiUrl(cleanPath), name: "Cloudflare FPL route" },
     { url: buildProxyUrls(cleanPath)[0], name: "allorigins-raw" },
-    { url: buildProxyUrls(cleanPath)[1], name: "allorigins-get" }
+    { url: buildProxyUrls(cleanPath)[1], name: "allorigins-get" },
+    { url: buildProxyUrls(cleanPath)[2], name: "cors-io" }
   ];
 
   let lastError = null;
@@ -59,7 +71,7 @@ export async function fetchPublicApi(path) {
 }
 
 export async function fetchBootstrap(onAttempt) {
-  if (onAttempt) onAttempt(1, 3);
+  if (onAttempt) onAttempt(1, 4);
   const data = await fetchPublicApi("bootstrap-static/");
   if (!data || !Array.isArray(data.elements)) {
     throw new Error("FPL returned an invalid bootstrap response");
