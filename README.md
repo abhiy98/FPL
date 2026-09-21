@@ -10,7 +10,7 @@ A lightweight, installable FPL price tracker using TypeScript, Vite and Cloudfla
 - `src/storage.ts` — local persistence and snapshots
 - `src/utils.ts` — shared event/countdown helpers
 - `src/styles.css` — application styling
-- root `pwa-enhance.js`, `jersey-fix.js`, `team-menu.js` — focused UI modules imported by the TypeScript app
+- `src/pwa-enhance.ts`, `src/jersey-fix.ts`, `src/team-menu.ts` — focused UI modules
 - `_worker.js` — Cloudflare Pages Advanced Mode API worker
 - `manifest.json`, `sw.js`, `icon-*.png` — PWA assets
 - `scripts/postbuild.mjs` — copies Cloudflare/PWA runtime files into Vite output
