@@ -43,7 +43,7 @@ export function saveSnapshot(players, at) {
     const data = players.map((p) => [
       p.id, p.name, p.team, p.pos, p.gw1, p.now, p.total, p.event, p.own,
       p.status, p.teamName, p.transfersIn, p.transfersOut, p.netTransfers,
-      p.points, p.form, p.epNext, p.minutes
+      p.points, p.form, p.epNext, p.minutes, p.progress, p.prediction
     ]);
     localStorage.setItem(STORE_KEY_SNAPSHOT, JSON.stringify({
       at: at.toISOString(),
@@ -76,7 +76,9 @@ export function loadSnapshot() {
       points: a[14] || 0,
       form: a[15] || 0,
       epNext: a[16] || 0,
-      minutes: a[17] || 0
+      minutes: a[17] || 0,
+      progress: a[18] == null ? null : a[18],
+      prediction: a[19] == null ? null : a[19]
     }));
     return { players, at: parsed.at };
   } catch {
