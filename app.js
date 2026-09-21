@@ -3,7 +3,7 @@ import "./jersey-fix.js";
 import "./team-menu.js";
 
 import { fetchBootstrap, fetchPublicApi } from "./api.js";
-import { currentEvent, formatCountdown } from "./utils.js";
+import { currentEvent, upcomingEvent, formatCountdown, formatDeadline, nextPriceChangeAt } from "./utils.js";
 import {
   STORE_KEY_FAVS, STORE_KEY_WATCHLIST, STORE_KEY_TEAM,
   loadSet, saveSet, loadValue, saveValue, removeValue,
@@ -161,6 +161,7 @@ import {
           '<td class="num price">' + fmtPrice(p.gw1) + '</td><td class="num price">' + fmtPrice(p.now) + '</td>' +
           '<td class="num"><span class="delta ' + total.cls + '"><span class="arrow">' + total.arrow + '</span>' + total.text + '</span></td>' +
           '<td class="num"><span class="delta ' + event.cls + '"><span class="arrow">' + event.arrow + '</span>' + event.text + '</span></td>' +
+          '<td class="num points">' + p.points + '</td>' +
           '<td class="num"><div class="own-bar-wrap">' + p.own.toFixed(1) + '%<span class="own-bar"><i style="width:' + ownPct + '%"></i></span></div></td></tr>';
       }).join('');
     }
@@ -168,11 +169,25 @@ import {
   }
 
   function renderDashboard(){
-    var rising=state.players.filter(function(p){return p.total>0}), falling=state.players.filter(function(p){return p.total<0}), biggest=state.players.slice().sort(function(a,b){return Math.abs(b.total)-Math.abs(a.total);})[0];
-    var re=document.getElementById('pwRisingCount'), fe=document.getElementById('pwFallingCount'), bm=document.getElementById('pwBiggestMove'), bh=document.getElementById('pwBiggestMoveHint'), dl=document.getElementById('pwDeadline');
-    if(re)re.textContent=rising.length; if(fe)fe.textContent=falling.length; if(bm)bm.textContent=biggest?fmtDelta(biggest.total).text:'—'; if(bh)bh.textContent=biggest?biggest.name+' · '+biggest.team:'awaiting data';
-    var ev=currentEvent(state.events); if(dl)dl.textContent=ev?formatCountdown(ev.deadline_time):'—';
-    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value £'+(state.team.value/10).toFixed(1)+'m · Bank £'+(state.team.bank/10).toFixed(1)+'m':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device. No login is required.';
+    var timer=document.getElementById('pwPriceChangeTimer'), budget=document.getElementById('pwAvailableBudget'), value=document.getElementById('pwTeamValue'), dl=document.getElementById('pwDeadline'), dh=document.getElementById('pwDeadlineHint');
+    var priceTarget=nextPriceChangeAt(new Date());
+    if(timer)timer.textContent=priceTarget?formatCountdown(priceTarget):'—';
+
+    var teamValue=0, teamValuePlayers=0;
+    if(state.team&&state.team.picks){
+      state.team.picks.forEach(function(id){
+        var player=state.players.find(function(p){return p.id===id;});
+        if(player){teamValue+=player.now;teamValuePlayers++;}
+      });
+    }
+    if(budget)budget.textContent=state.team?'£'+((state.team.bank||0)/10).toFixed(1)+'m':'—';
+    if(value)value.textContent=(state.team&&teamValuePlayers===state.team.picks.size)?'£'+(teamValue/10).toFixed(1)+'m':(state.team?'Updating…':'—');
+
+    var ev=upcomingEvent(state.events);
+    if(dl)dl.textContent=ev?formatDeadline(ev.deadline_time):'—';
+    if(dh)dh.textContent=ev?'GW'+ev.id+' · upcoming deadline':'upcoming gameweek';
+
+    var note=document.getElementById('pwTeamNote'); if(note)note.textContent=state.team?(state.team.name?'Loaded: '+state.team.name+' · Team value uses current player prices.':'Your team is loaded. Players are highlighted in the table.'):'Favourites, watchlist and your Team ID are saved locally on this device. No login is required.';
     var clear=document.getElementById('pwClearTeam'); if(clear)clear.style.display=state.team?'inline-block':'none';
   }
 
@@ -191,7 +206,7 @@ import {
     if (state.polling) return;
     state.polling = true;
     refreshBtn.querySelector ? null : null;
-    refreshBtn.innerHTML = '<span class="spin">⟳</span>';
+    refreshBtn.innerHTML = '<span class="spin"><svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4L3 10"></path><path d="M3 4v6h6"></path><path d="M4 13a8 8 0 0 0 14.9 4L21 14"></path><path d="M21 20v-6h-6"></path></svg></span>';
     setStatus("", isManual ? "Refreshing…" : "Checking for updates…");
     try{
       var data = await fetchBootstrap(function(attempt, total){
@@ -230,7 +245,7 @@ import {
       render();
     } finally {
       state.polling = false;
-      refreshBtn.innerHTML = "⟳";
+      refreshBtn.innerHTML = '<svg class="refresh-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4L3 10"></path><path d="M3 4v6h6"></path><path d="M4 13a8 8 0 0 0 14.9 4L21 14"></path><path d="M21 20v-6h-6"></path></svg>';
     }
   }
 
@@ -311,7 +326,7 @@ import {
   async function loadMyTeam(){
     var input=document.getElementById('pwTeamId'), id=parseInt(input&&input.value?input.value.trim():'',10); if(!id){showToast('Enter a valid FPL Team ID');return;}
     var button=document.getElementById('pwLoadTeam');button.disabled=true;button.textContent='Loading…';
-    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,value:entry.last_deadline_value||entry.value||0,bank:entry.last_deadline_bank||entry.bank||0,name:entry.name||''}; try{saveValue(STORE_KEY_TEAM, String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
+    try{var entry=await fetchPublicApi('entry/'+id+'/'),ev=currentEvent(state.events),gw=ev?ev.id:1,picksData=await fetchPublicApi('entry/'+id+'/event/'+gw+'/picks/'),picks=new Set((picksData.picks||[]).map(function(x){return x.element;})); state.team={id:id,picks:picks,bank:entry.bank!=null?entry.bank:(entry.last_deadline_bank||0),name:entry.name||''}; try{saveValue(STORE_KEY_TEAM, String(id));}catch(e){} showToast('Team loaded');render();}catch(e){showToast('Couldn\'t load that FPL Team ID');}finally{button.disabled=false;button.textContent='Load my team';}
   }
   async function restoreTeam(){try{var id=loadValue(STORE_KEY_TEAM);if(id){var input=document.getElementById('pwTeamId');if(input)input.value=id;await loadMyTeam();}}catch(e){}}
 
@@ -349,7 +364,7 @@ import {
 
   refresh(false);
   setInterval(function(){ refresh(false); }, POLL_MS);
-  setInterval(function(){ renderDashboard(); }, 30000);
+  setInterval(function(){ renderDashboard(); }, 1000);
   restoreTeam();
 
 })();
