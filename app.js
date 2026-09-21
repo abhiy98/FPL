@@ -1,3 +1,7 @@
+import "./pwa-enhance.js";
+import "./jersey-fix.js";
+import "./team-menu.js";
+
 import { fetchBootstrap, fetchPublicApi } from "./api.js";
 import { currentEvent, formatCountdown } from "./utils.js";
 import {
