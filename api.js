@@ -22,3 +22,9 @@ export async function fetchBootstrap(onAttempt) {
   if (onAttempt) onAttempt(1, 1);
   return fetchPublicApi("bootstrap-static/");
 }
+
+export async function fetchPriceData() {
+  const response = await fetchWithTimeout("/price-data");
+  if (!response.ok) throw new Error("HTTP " + response.status);
+  return response.json();
+}
